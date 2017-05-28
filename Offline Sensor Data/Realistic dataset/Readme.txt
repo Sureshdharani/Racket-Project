@@ -1,3 +1,6 @@
+Created by Amir Kallel at 28.05.2017
+
+
 This dataset includes the recording of 6 relevant sensors of the watch while performing tennis racket moves.
 The purpose is to identify the sensors to rely on for the rest of the project.
 
