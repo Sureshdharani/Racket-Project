@@ -1,19 +1,31 @@
 #include "mraa.h"
 #include "math.h"
 #include "sys/time.h"
-// static int array_MaxLength;
-// #define array_MaxLength 100
-// typedef struct Array_buffer{
-//     //enum { is_int, is_float, is_char } type;
-//     union {
-//         float measurements;
-//         long int TimeStamp;
-//     } val;
-// } ary_buffer;
+#include <vector>
+#include <iostream>
 
+static int array_MaxLength;
+#define array_MaxLength 100
 
+typedef struct Array_buffer{
+    //enum { is_int, is_float, is_char } type;
+    union {
+        float measurements;
+        long int TimeStamp;
+    } val;
+} ary_buffer;
+
+// ----------------- Functions Definitons ------------------
+void PrintAry(int ay_MaxLength, ary_buffer Array_buffer[]);
 
 int main (int argc, const char* argv[]) {
+
+    std::vector<int> vec;
+    vec.push_back(1);
+    vec.push_back(3);
+    vec.push_back(2);
+
+    std::cout << vec.at(0) << ", " << vec.at(1) << std::endl;
     // init i2c comms
     mraa_i2c_context i2c = mraa_i2c_init(1); // i2c bus 1
     mraa_i2c_address(i2c, 0x68);
@@ -33,16 +45,11 @@ int main (int argc, const char* argv[]) {
     float i=0;
     float conver=0;
     float comp=0;
-// ary_buffer A_buf[array_MaxLength];
+ary_buffer A_buf[array_MaxLength];
 
 int array_index=0;
-int ts_array_index=0; 
-int array_MaxLength=100;
-int array_MesMaxLength=array_MaxLength * 9;
 
-float array_measu[array_MesMaxLength] ;
 
-long int array_TS[array_MaxLength] ;
 
 
 struct timeval tp;
@@ -141,30 +148,30 @@ printf("time: %d\n",ms);
 	gettimeofday(&tp, NULL);
 	long int ms = tp.tv_sec * 1000+tp.tv_usec/1000;
 	
-    array_measu[array_index]=ax;
+    A_buf[array_index].val.measurements=ax;
     array_index++;
-    array_measu[array_index]=ay;
+    A_buf[array_index].val.measurements=ay;
     array_index++;
-    array_measu[array_index]=az;
+    A_buf[array_index].val.measurements=az;
     array_index++;
-    array_measu[array_index]=gx;
+    A_buf[array_index].val.measurements=gx;
     array_index++;
-    array_measu[array_index]=gy;
+    A_buf[array_index].val.measurements=gy;
     array_index++;
-    array_measu[array_index]=gz;
+    A_buf[array_index].val.measurements=gz;
     array_index++;
-    array_measu[array_index]=mx;
+    A_buf[array_index].val.measurements=mx;
     array_index++;
-    array_measu[array_index]=my;
+    A_buf[array_index].val.measurements=my;
     array_index++;
-    array_measu[array_index]=mz;
+    A_buf[array_index].val.measurements=mz;
     array_index++;
-    array_TS[ts_array_index]=ms;
-    ts_array_index++;
+    A_buf[array_index].val.TimeStamp=ms;
+    array_index++;
 
-        if (ts_array_index==array_MaxLength && array_index==array_MesMaxLength)
+        if (array_index==array_MaxLength)
         {
-            PrintAry(array_measu,array_index,array_TS,ts_array_index,array_MaxLength, array_MesMaxLength);
+            PrintAry(array_MaxLength,A_buf);
         }
     i++;
 
@@ -175,35 +182,31 @@ printf("time: %d\n",ms);
     return 0;
 }
 
-void PrintAry(float array_measu[], int array_index, long int  array_TS[], int ts_array_index, int array_MaxLength, int  array_MesMaxLength )
+void PrintAry(int ay_MaxLength, ary_buffer Array_buffer[] )
 {
-    int ary_siz_mes= sizeof(array_measu);
-    int ary_siz_ts= 0;
+    int array_index= sizeof(Array_buffer);
     int i;
-    for (i=0; i<ary_siz_mes;i++)
-    {   
-
-        printf("ACC_X: %f\n", array_measu[i]);
+    for (i=0; i<ay_MaxLength;i++)
+    {    printf("ACC_X: %f\n", Array_buffer[i].val.measurements);
         i++;
-        printf("ACC_Y: %f\n", array_measu[i]);
+        printf("ACC_Y: %f\n", Array_buffer[i].val.measurements);
         i++;
-        printf("ACC_Z: %f\n", array_measu[i]);
+        printf("ACC_Z: %f\n", Array_buffer[i].val.measurements);
         i++;
-        printf("GYR_X: %f\n",array_measu[i]);
+        printf("GYR_X: %f\n",Array_buffer[i].val.measurements);
         i++;
-        printf("GYR_Y: %f\n", array_measu[i]);
+        printf("GYR_Y: %f\n", Array_buffer[i].val.measurements);
         i++;
-        printf("GYR_Z: %f\n", array_measu[i]);
+        printf("GYR_Z: %f\n", Array_buffer[i].val.measurements);
         i++;
-        printf("MAG_X: %f\n", array_measu[i]);
+        printf("MAG_X: %f\n", Array_buffer[i].val.measurements);
         i++;
-        printf("MAG_Y: %f\n", array_measu[i]);
+        printf("MAG_Y: %f\n", Array_buffer[i].val.measurements);
         i++;
-        printf("MAG_Z: %f\n", array_measu[i]);
+        printf("MAG_Z: %f\n", Array_buffer[i].val.measurements);
         i++;
-        printf("Time Stamp: %d\n",array_TS[ary_siz_ts]);
-        ary_siz_ts++;
+        printf("Time Stamp: %d\n",Array_buffer[i].val.TimeStamp);
+        
     }   
 };
-void TX_fn()
 
