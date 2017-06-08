@@ -7,13 +7,18 @@ close all;
 clear variables;
 
 %% Begin processing data here:
-% 1) Read IMU data: online or offline
+% 1) Read IMU data:
+path = '../Offline Sensor Data/test3/';
+range = [3, inf];
+type = 'float';
 
-% 2) Rotate with rotational matrices:
+dt = 1/100;
+[acc, gyro, mag, t] = readSensData(path,...
+                                   'test3_acc.pcm',...
+                                   'test3_gyro.pcm',...
+                                   'test3_mag.pcm',...
+                                   dt, range, type);
 
-% 3) Provide Kalman filtering:
-
-% 4) Fit with RLS:
-
-% 5) Predict qaulity of the movement:
+% 2) Plot raw data:
+plotSensData( 'RAW Data', t, acc, gyro, mag);
 
