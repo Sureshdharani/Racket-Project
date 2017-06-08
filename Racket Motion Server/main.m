@@ -22,24 +22,31 @@ dt = 1/100;
                                    dt, range, type);
 
 % 2) Iterate over data plot it and fit it:
-hFig = figure('Name', 'RAW Data'); 
+figName = 'RAW Data';
+hFig = figure('Name', figName); 
 % plotSensData(hFig, t_dat, acc_dat, gyro_dat, mag_dat);
 
-t = [];
-acc = [];
-gyro = [];
-mag = [];
-for k=1:length(t_dat)
-    t = [t, t_dat(k)];
-    acc = [acc, acc_dat(:,k)];
-    gyro = [gyro, gyro_dat(:,k)];
-    mag = [mag, mag_dat(:,k)];
-    
-    plotSensData(hFig, t, acc, gyro, mag);
-    
-    pause(dt);
-end
+% t = [];
+% acc = [];
+% gyro = [];
+% mag = [];
+% for k=1:length(t_dat)
+% %     t = [t, t_dat(k)];
+% %     acc = [acc, acc_dat(:,k)];
+% %     gyro = [gyro, gyro_dat(:,k)];
+% %     mag = [mag, mag_dat(:,k)];
+%     
+%     plotSensData(hFig, t_dat(k), acc_dat(:,k), gyro_dat(:,k), mag_dat(:,k));
+%     
+%     pause(dt);
+% end
 
+acc_x = acc_dat(1,:);
+
+idx_beg = 520;
+idx_end = idx_beg + 150;
+acc_x = acc_x(idx_beg:idx_end);
+t = t_dat(idx_beg:idx_end);
 
 
 
