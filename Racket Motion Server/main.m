@@ -26,27 +26,22 @@ figName = 'RAW Data';
 hFig = figure('Name', figName); 
 % plotSensData(hFig, t_dat, acc_dat, gyro_dat, mag_dat);
 
-% t = [];
-% acc = [];
-% gyro = [];
-% mag = [];
-% for k=1:length(t_dat)
-% %     t = [t, t_dat(k)];
-% %     acc = [acc, acc_dat(:,k)];
-% %     gyro = [gyro, gyro_dat(:,k)];
-% %     mag = [mag, mag_dat(:,k)];
-%     
-%     plotSensData(hFig, t_dat(k), acc_dat(:,k), gyro_dat(:,k), mag_dat(:,k));
-%     
-%     pause(dt);
-% end
-
-acc_x = acc_dat(1,:);
-
-idx_beg = 520;
-idx_end = idx_beg + 150;
-acc_x = acc_x(idx_beg:idx_end);
-t = t_dat(idx_beg:idx_end);
+t = [];
+acc = [];
+gyro = [];
+mag = [];
+ax = [];
+for k=1:length(t_dat)
+    t = [t, t_dat(k)];
+    acc = [acc, acc_dat(:,k)];
+    gyro = [gyro, gyro_dat(:,k)];
+    mag = [mag, mag_dat(:,k)];
+    
+    plotSensData(hFig, t(k), acc(:,k), gyro(:,k), mag(:,k));
+    
+    % pause(dt);
+    pause(0.05);
+end
 
 
 
