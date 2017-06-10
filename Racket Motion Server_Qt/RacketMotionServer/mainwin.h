@@ -47,6 +47,16 @@ typedef QList<DataList> DataTable;
 
 QT_CHARTS_USE_NAMESPACE
 
+struct NamedChart {
+    QChartView* chart;
+    QString name;
+
+    NamedChart(QChartView* newChart, const QString newName) {
+       chart = newChart;
+       name = newName;
+    }
+};
+
 namespace Ui {
 class MainWin;
 }
@@ -71,10 +81,20 @@ private:  // functions
                             const QString yLabel = "") const;
     DataTable _generateRandomData(int listCount, int valueMax, int valueCount) const;
 
+    QGridLayout *_createChartLayout();
+
+    void _plotData(DataList accx, DataList accy, DataList accz,
+                   DataList gyrox, DataList gyroy, DataList gyroz,
+                   DataList magx, DataList magy, DataList magz);
+
+    void _plotOnChart(QChartView* chart, DataList Data,
+                      const QString xLabel, const QString yLabel);
+
 private:  // variables
     Ui::MainWin *ui;
 
-    QList<QChartView *> _charts;
+    // QList<QChartView*> _charts;
+    QList<NamedChart> _namedCharts;
     DataTable _dataTable;
 };
 
