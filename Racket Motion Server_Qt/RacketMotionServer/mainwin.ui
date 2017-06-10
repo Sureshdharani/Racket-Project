@@ -13,7 +13,20 @@
   <property name="windowTitle">
    <string>Racket Motion Server</string>
   </property>
-  <widget class="QWidget" name="centralWidget"/>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <widget class="QWidget" name="ChartWidget" native="true"/>
+    </item>
+    <item row="0" column="1">
+     <widget class="QGroupBox" name="ControlBox">
+      <property name="title">
+       <string>Control Elements</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
