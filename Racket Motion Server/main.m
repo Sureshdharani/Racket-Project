@@ -9,17 +9,27 @@ clear variables;
 %% Begin processing data here:
 % 1) Read IMU data:
 
-testName = 'test4';
-path = ['../Offline Sensor Data/', testName, '/'];
-range = [3, inf];
-type = 'float';
-
+% Read from presaved file:
+isPresaved = 0;
 dt = 1/100;
-[acc_dat, gyro_dat, mag_dat, t_dat] = readSensData(path,...
-                                   [testName, '_acc.pcm'],...
-                                   [testName, '_gyro.pcm'],...
-                                   [testName, '_mag.pcm'],...
-                                   dt, range, type);
+if isPresaved == 1
+    testName = 'test4';
+    path = ['../Offline Sensor Data/', testName, '/'];
+    range = [3, inf];
+    type = 'float';
+
+    [acc_dat, gyro_dat, mag_dat, t_dat] = readSensData(path,...
+                                            [testName, '_acc.pcm'],...
+                                            [testName, '_gyro.pcm'],...
+                                            [testName, '_mag.pcm'],...
+                                            dt, range, type);
+else
+    connector('off');
+    connector('on', '12345');
+    m = mobiledev;
+    m.Logging = 1;
+end
+% Read from android mobile phone
 
 % 2) Iterate over data plot it and fit it:
 figName = 'RAW Data';
@@ -31,18 +41,25 @@ acc = [];
 gyro = [];
 mag = [];
 ax = [];
-for k=1:length(t_dat)
-    t = [t, t_dat(k)];
-    acc = [acc, acc_dat(:,k)];
-    gyro = [gyro, gyro_dat(:,k)];
-    mag = [mag, mag_dat(:,k)];
-    
-    plotSensData(hFig, t(k), acc(:,k), gyro(:,k), mag(:,k));
-    
-    % pause(dt);
-    pause(0.05);
-end
 
+% N = length(t_dat);
+N = Inf;
+tt = [];
+for k=1:N
+    t_beg = tic;
+%     t = [t, t_dat(k)];
+%     acc = [acc, acc_dat(:,k)];
+%     gyro = [gyro, gyro_dat(:,k)];
+%     mag = [mag, mag_dat(:,k)];
+    acc = [acc, m.Acceleration'];
+    gyro = [gyro, m.AngularVelocity'];
+    mag = [mag, m.MagneticField'];
+    
+    plotSensData(hFig, dt, acc, gyro, mag);
+    t_samp = toc(t_beg);
+    
+    tt = [tt, t_samp];
+end
 
 
 
