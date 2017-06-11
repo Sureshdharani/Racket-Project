@@ -41,7 +41,7 @@ private:  // functions
     void _setUpPlot(QCustomPlot *plot, const QColor color = QColor(40, 110, 255),
                     const QString timeFormat = "%m:%s",
                     const QString xLabel = "x", const QString yLabel = "y");
-    void _plot(QCustomPlot *plot, const double key, const double value);
+    void _appendToPlot(QCustomPlot *plot, const double key, const double value);
 
 private:  // variables
     Ui::MainWin *ui;

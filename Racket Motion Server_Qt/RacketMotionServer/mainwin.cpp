@@ -82,7 +82,7 @@ void MainWin::_setUpPlot(QCustomPlot *plot, const QColor color,
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::_plot(QCustomPlot *plot, const double key, const double value)
+void MainWin::_appendToPlot(QCustomPlot *plot, const double key, const double value)
 {
   // add data to lines:
   plot->graph(0)->addData(key, value);
@@ -105,8 +105,8 @@ void MainWin::realTimeDataSlot()
     if (key-lastPointKey > 0.0001) // at most add point every 0.1 ms
     {
       foreach(QCustomPlot* plot, _plotsList)
-        _plot(plot, key, qSin(key)
-              + qrand()/(double)RAND_MAX*1*qSin(key/0.3843));
+        _appendToPlot(plot, key, qSin(key)
+                      + qrand()/(double)RAND_MAX*1*qSin(key/0.3843));
 
       lastPointKey = key;
     }
