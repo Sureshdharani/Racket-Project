@@ -2,31 +2,47 @@
 #define RACKETSENSORSERVER_H
 
 #include <QUdpSocket>
-#include <QNetworkDatagram>
+
+struct SensData {
+    double t = 0;
+
+    double accX = 0;
+    double accY = 0;
+    double accZ = 0;
+
+    double gyroX = 0;
+    double gyroY = 0;
+    double gyroZ = 0;
+
+    double magX = 0;
+    double magY = 0;
+    double magZ = 0;
+};
 
 class RacketSensorServer : public QObject
 {
     Q_OBJECT
 
 public:  // functions
-    explicit RacketSensorServer(QObject *parent = 0);
+    explicit RacketSensorServer(QObject *parent = 0,
+                                const quint16 Port = 5555);
 
 public:  // variables
     quint16 port;
-    QHostAddress ipv4Addr;
 
 public slots:
-    void setListenIPPort(const QHostAddress IPv4Addr, const quint16 Port);
+    void setListenIPPort(const quint16 Port);
     void readPendingDatagrams();
 
 signals:
-    void sendState(const QString errorDescr = "No Error");
+    void sendState(const QString errorDescr);
 
 private:  // functions
 
 private:  // variables
 
     QUdpSocket* _socket;
+    SensData _sensData;
 };
 
 #endif // RACKETSENSORCLIENT_H

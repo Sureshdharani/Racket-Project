@@ -1,47 +1,63 @@
 #include "racketsensorserver.h"
 
 //-----------------------------------------------------------------------------
-RacketSensorServer::RacketSensorServer(QObject *parent) :
+RacketSensorServer::RacketSensorServer(QObject *parent,
+                                       const quint16 Port) :
     QObject(parent)
 {
     _socket = new QUdpSocket(this);
-    port = 5555;
-    ipv4Addr = QHostAddress("127.0.0.1");  // QHostAddress::LocalHost;
-    _socket->bind(ipv4Addr, port);
+    port = Port;
+    _socket->bind(port);
 
     connect(_socket, SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
 }
 
 //-----------------------------------------------------------------------------
-void RacketSensorServer::setListenIPPort(const QHostAddress IPv4Addr,
-                                         const quint16 Port) {
+void RacketSensorServer::setListenIPPort(const quint16 Port) {
     _socket->abort();
     port = Port;
-    ipv4Addr = IPv4Addr;
-    bool isConnected = _socket->bind(ipv4Addr, port);
+    bool isConnected = _socket->bind(port);
 
     if (!isConnected)
     {
-        sendState("Can't lsiten from adress "
-                  + ipv4Addr.toString()
-                  + " on port "
-                  + QString::number(port));
+        emit(sendState("Can't lsiten on port "
+                       + QString::number(port)));
     }
     else
     {
-        sendState("Listen from adress "
-                  + ipv4Addr.toString()
-                  + " on port "
-                  + QString::number(port));
+        emit(sendState("Listen on port "
+                       + QString::number(port)));
     }
 }
 
 //-----------------------------------------------------------------------------
 void RacketSensorServer::readPendingDatagrams()
 {
-    while (_socket->hasPendingDatagrams()) {
-        QNetworkDatagram datagram = _socket->receiveDatagram();
-        sendState("new data");
-        // processTheDatagram(datagram);
-    }
+    // when data comes in
+    QByteArray buffer;
+    buffer.resize(_socket->pendingDatagramSize());
+
+    QHostAddress sender;
+    quint16 senderPort;
+
+    // qint64 QUdpSocket::readDatagram(char * data, qint64 maxSize,
+    //                 QHostAddress * address = 0, quint16 * port = 0)
+    // Receives a datagram no larger than maxSize bytes and stores it in data.
+    // The sender's host address and port is stored in *address and *port
+    // (unless the pointers are 0).
+
+    // Packet format:
+    // "90594.75079, 3,  -0.059,  0.098,  9.826, 4,  -0.000,  0.001,  0.001, 5,  16.191, 12.642,-34.497"
+
+    _socket->readDatagram(buffer.data(), buffer.size(),
+                          &sender, &senderPort);
+
+    QString data(buffer);
+    // data.replace(" ", "");
+
+    // qDebug() << "Message from: " << sender.toString();
+    // qDebug() << "Message port: " << senderPort;
+    qDebug() << "Message: " << data;
+
+    // int k = 0;
 }
