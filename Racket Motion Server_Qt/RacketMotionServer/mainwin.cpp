@@ -82,7 +82,8 @@ void MainWin::_setUpPlot(QCustomPlot *plot, const QColor color,
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::_appendToPlot(QCustomPlot *plot, const double key, const double value)
+void MainWin::_appendToPlot(QCustomPlot *plot, const double key,
+                            const double value, const int scrollRange)
 {
   // add data to lines:
   plot->graph(0)->addData(key, value);
@@ -91,7 +92,7 @@ void MainWin::_appendToPlot(QCustomPlot *plot, const double key, const double va
   plot->graph(0)->rescaleValueAxis(true);
 
   // make key axis range scroll with the data (at a constant range size of 20):
-  plot->xAxis->setRange(key, 20, Qt::AlignRight);
+  plot->xAxis->setRange(key, scrollRange, Qt::AlignRight);
   plot->replot();
 }
 
