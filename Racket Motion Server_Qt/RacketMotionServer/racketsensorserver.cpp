@@ -48,6 +48,9 @@ void RacketSensorServer::readPendingDatagrams()
 
     // Packet format:
     // "90594.75079, 3,  -0.059,  0.098,  9.826, 4,  -0.000,  0.001,  0.001, 5,  16.191, 12.642,-34.497"
+    // "92309.44280, 3,  -0.090,  0.013,  9.746, 4,   0.001,  0.001, -0.001, 5,  17.903, 10.240,-33.698"
+    // "92309.37615, 3,  -0.043,  0.033,  9.722, 4,  -0.001, -0.001, -0.001"
+    // "92272.20973, 3,  -1.355, -0.098, 10.935"
 
     _socket->readDatagram(buffer.data(), buffer.size(),
                           &sender, &senderPort);
@@ -58,6 +61,7 @@ void RacketSensorServer::readPendingDatagrams()
     // qDebug() << "Message from: " << sender.toString();
     // qDebug() << "Message port: " << senderPort;
     qDebug() << "Message: " << data;
+    qDebug() << "--------------------------------";
 
     // int k = 0;
 }
