@@ -4,16 +4,24 @@
 //-----------------------------------------------------------------------------
 MainWin::MainWin(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWin),
-    _dataTable(_generateRandomData(9, 10, 1000))
+    ui(new Ui::MainWin)
 {
     ui->setupUi(this);
-    ui->ChartWidget->setLayout(_createChartLayout());
 
-    _plotData(_dataTable.at(0), _dataTable.at(1), _dataTable.at(2),
-              _dataTable.at(3), _dataTable.at(4), _dataTable.at(5),
-              _dataTable.at(6), _dataTable.at(7), _dataTable.at(8));
-    _updateCharts();
+    // Save plots in the structure:
+    _plotsList.append(ui->wid11);
+    _plotsList.append(ui->wid12);
+    _plotsList.append(ui->wid13);
+
+    _plotsList.append(ui->wid21);
+    _plotsList.append(ui->wid22);
+    _plotsList.append(ui->wid23);
+
+    _plotsList.append(ui->wid31);
+    _plotsList.append(ui->wid32);
+    _plotsList.append(ui->wid33);
+
+    setUpPlots();
 }
 
 //-----------------------------------------------------------------------------
@@ -28,206 +36,93 @@ void MainWin::connectSignals()
     // connect(m_themeComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(updateUI()));
 }
 
+
 //-----------------------------------------------------------------------------
-void MainWin::_updateCharts()
+void MainWin::setUpPlots()
 {
-    QChart::ChartTheme theme = QChart::ChartThemeLight;
+    // acceleration plots:
+    _setUpPlot(ui->wid11, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "a_x, m/s^2");
+    _setUpPlot(ui->wid21, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "a_y, m/s^2");
+    _setUpPlot(ui->wid31, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "a_z, m/s^2");
 
-    if (_namedCharts.at(0).chart->chart()->theme() != theme) {
-        foreach (NamedChart namedChart, _namedCharts)
-            namedChart.chart->chart()->setTheme(theme);
+    // gyro plots:
+    _setUpPlot(ui->wid12, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "w_x, rad/s");
+    _setUpPlot(ui->wid22, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "w_y, rad/s");
+    _setUpPlot(ui->wid32, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "w_z, rad/s");
 
-        QPalette pal = window()->palette();
-        pal.setColor(QPalette::Window, QRgb(0x121218));
-        pal.setColor(QPalette::WindowText, QRgb(0xd6d6d6));
-        window()->setPalette(pal);
+    // magnetic field plots:
+    _setUpPlot(ui->wid13, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "M_x, uT");
+    _setUpPlot(ui->wid23, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "M_y, uT");
+    _setUpPlot(ui->wid33, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "M_z, uT");
+
+    // setup a timer that repeatedly calls MainWindow::realtimeDataSlot:
+    connect(&_dataTimer, SIGNAL(timeout()), this, SLOT(realTimeDataSlot()));
+    _dataTimer.start(0); // Interval 0 means to refresh as fast as possible
+}
+
+//-----------------------------------------------------------------------------
+void MainWin::_setUpPlot(QCustomPlot *plot, const QColor color,
+                         const QString timeFormat,
+                         const QString xLabel, const QString yLabel)
+{
+    plot->addGraph(); // blue line
+    plot->graph(0)->setPen(QPen(color));
+
+    QSharedPointer<QCPAxisTickerTime> timeTicker(new QCPAxisTickerTime);
+    timeTicker->setTimeFormat(timeFormat);
+    plot->xAxis->setTicker(timeTicker);
+    plot->axisRect()->setupFullAxesBox();
+    plot->yAxis->setRange(-1, 1);
+    plot->xAxis->setLabel(xLabel);
+    plot->yAxis->setLabel(yLabel);
+
+    // make left and bottom axes transfer their ranges to right and top axes:
+    // connect(plot->xAxis, SIGNAL(rangeChanged(QCPRange)), plot->xAxis2, SLOT(setRange(QCPRange)));
+    // connect(plot->yAxis, SIGNAL(rangeChanged(QCPRange)), plot->yAxis2, SLOT(setRange(QCPRange)));
+}
+
+//-----------------------------------------------------------------------------
+void MainWin::_plot(QCustomPlot *plot, const double key, const double value)
+{
+  // add data to lines:
+  plot->graph(0)->addData(key, value);
+
+  // rescale value (vertical) axis to fit the current data:
+  plot->graph(0)->rescaleValueAxis(true);
+
+  // make key axis range scroll with the data (at a constant range size of 20):
+  plot->xAxis->setRange(key, 20, Qt::AlignRight);
+  plot->replot();
+}
+
+//-----------------------------------------------------------------------------
+void MainWin::realTimeDataSlot()
+{
+    static QTime time(QTime::currentTime());
+    // calculate two new data points:
+    double key = time.elapsed()/1000.0; // time elapsed since start of demo, in seconds
+    static double lastPointKey = 0;
+    if (key-lastPointKey > 0.0001) // at most add point every 0.1 ms
+    {
+      foreach(QCustomPlot* plot, _plotsList)
+        _plot(plot, key, qSin(key)
+              + qrand()/(double)RAND_MAX*1*qSin(key/0.3843));
+
+      lastPointKey = key;
     }
 
-    foreach (NamedChart namedChart, _namedCharts)
-        namedChart.chart->setRenderHint(QPainter::Antialiasing, true);
-
-    foreach (NamedChart namedChart, _namedCharts)
-        namedChart.chart->chart()->legend()->hide();
-}
-
-//-----------------------------------------------------------------------------
-QChart *MainWin::_lineChart(DataTable data, const QString xLabel,
-                           const QString yLabel) const
-{
-    QChart *chart = new QChart();
-    int nameIndex = 0;
-    foreach (DataList list, data) {
-        QLineSeries *series = new QLineSeries(chart);
-        foreach (Data data, list)
-            series->append(data.first);
-        nameIndex++;
-        chart->addSeries(series);
-
-        QValueAxis *axisX = new QValueAxis();
-        axisX->setTitleText(xLabel);
-        axisX->setLabelFormat("%.2f");
-        axisX->setTickCount(series->count());
-        chart->addAxis(axisX, Qt::AlignBottom);
-        series->attachAxis(axisX);
-
-        QValueAxis *axisY = new QValueAxis();
-        axisY->setTitleText(yLabel);
-        axisY->setLabelFormat("%.2f");
-        axisY->setTickCount(series->count());
-        chart->addAxis(axisY, Qt::AlignLeft);
-        series->attachAxis(axisY);
+    // calculate frames per second:
+    static double lastFpsKey;
+    static int frameCount;
+    ++frameCount;
+    if (key-lastFpsKey > 2) // average fps over 2 seconds
+    {
+      ui->statusBar->showMessage(
+            QString("%1 FPS, Total Data points: %2")
+            .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
+            .arg(ui->wid11->graph(0)->data()->size())
+            , 0);
+      lastFpsKey = key;
+      frameCount = 0;
     }
-    return chart;
-}
-
-//-----------------------------------------------------------------------------
-DataTable MainWin::_generateRandomData(int listCount, int valueMax,
-                                      int valueCount) const
-{
-    DataTable dataTable;
-
-    // set seed for random stuff
-    qsrand(QTime(0, 0, 0).secsTo(QTime::currentTime()));
-
-    // generate random data
-    for (int i(0); i < listCount; i++) {
-        DataList dataList;
-        qreal yValue(0);
-        for (int j(0); j < valueCount; j++) {
-            yValue = yValue + (qreal)(qrand() % valueMax) / (qreal) valueCount;
-            QPointF value((j + (qreal) rand() / (qreal) RAND_MAX) * ((qreal) valueMax / (qreal) valueCount),
-                          yValue);
-            QString label = "Slice " + QString::number(i) + ":" + QString::number(j);
-            dataList << Data(value, label);
-        }
-        dataTable << dataList;
-    }
-
-    return dataTable;
-}
-
-//-----------------------------------------------------------------------------
-QGridLayout *MainWin::_createChartLayout()
-{
-    // create layout
-    QGridLayout *baseLayout = new QGridLayout();
-
-    // create charts
-    QChartView *chartView;
-    QString chartName;
-    QString xLabel = "t, sec.";
-    QString yLabel;
-
-    // Acceleration charts:
-    chartName = "acc_x";
-    yLabel = "a_x, m/s^2";
-    chartView = new QChartView(_lineChart(DataTable(), xLabel, yLabel));
-    baseLayout->addWidget(chartView, 1, 0);
-    _namedCharts << NamedChart(chartView, chartName);
-
-    chartName = "acc_y";
-    yLabel = "a_y, m/s^2";
-    chartView = new QChartView(_lineChart(DataTable(), xLabel, yLabel));
-    baseLayout->addWidget(chartView, 2, 0);
-    _namedCharts << NamedChart(chartView, chartName);
-
-    chartName = "acc_z";
-    yLabel = "a_z, m/s^2";
-    chartView = new QChartView(_lineChart(DataTable(), xLabel, yLabel));
-    baseLayout->addWidget(chartView, 3, 0);
-    _namedCharts << NamedChart(chartView, chartName);
-
-    // Gyro charts:
-    chartName = "gyro_x";
-    yLabel = "gyro_x, rad/s";
-    chartView = new QChartView(_lineChart(DataTable(), xLabel, yLabel));
-    baseLayout->addWidget(chartView, 1, 1);
-    _namedCharts << NamedChart(chartView, chartName);
-
-    chartName = "gyro_y";
-    yLabel = "gyro_y, rad/s";
-    chartView = new QChartView(_lineChart(DataTable(), xLabel, yLabel));
-    baseLayout->addWidget(chartView, 2, 1);
-    _namedCharts << NamedChart(chartView, chartName);
-
-    chartName = "gyro_z";
-    yLabel = "gyro_z, rad/s";
-    chartView = new QChartView(_lineChart(DataTable(), xLabel, yLabel));
-    baseLayout->addWidget(chartView, 3, 1);
-    _namedCharts << NamedChart(chartView, chartName);
-
-    // Magnetic field charts:
-    chartName = "mag_x";
-    yLabel = "mag_x, uT";
-    chartView = new QChartView(_lineChart(DataTable(), xLabel, yLabel));
-    baseLayout->addWidget(chartView, 1, 2);
-    _namedCharts << NamedChart(chartView, chartName);
-
-    chartName = "mag_y";
-    yLabel = "mag_y, uT";
-    chartView = new QChartView(_lineChart(DataTable(), xLabel, yLabel));
-    baseLayout->addWidget(chartView, 2, 2);
-    _namedCharts << NamedChart(chartView, chartName);
-
-    chartName = "mag_z";
-    yLabel = "mag_z, uT";
-    chartView = new QChartView(_lineChart(DataTable(), xLabel, yLabel));
-    baseLayout->addWidget(chartView, 3, 2);
-    _namedCharts << NamedChart(chartView, chartName);
-
-    return baseLayout;
-}
-
-//-----------------------------------------------------------------------------
-void MainWin::_plotData(DataList accx, DataList accy, DataList accz,
-               DataList gyrox, DataList gyroy, DataList gyroz,
-               DataList magx, DataList magy, DataList magz)
-{
-    const QString xLabel = "t, sec.";
-    foreach(NamedChart namedChart, _namedCharts) {
-        if (namedChart.name == "acc_x")
-            _plotOnChart(namedChart.chart, accx, xLabel, "a_x, m/s^2");
-        else if (namedChart.name == "acc_y")
-            _plotOnChart(namedChart.chart, accy, xLabel, "a_y, m/s^2");
-        else if (namedChart.name == "acc_z")
-            _plotOnChart(namedChart.chart, accz, xLabel, "a_z, m/s^2");
-        else if (namedChart.name == "gyro_x")
-            _plotOnChart(namedChart.chart, gyrox, xLabel, "gyro_x, rad/s");
-        else if (namedChart.name == "gyro_y")
-            _plotOnChart(namedChart.chart, gyroy, xLabel, "gyro_y, rad/s");
-        else if (namedChart.name == "gyro_z")
-            _plotOnChart(namedChart.chart, gyroz, xLabel, "gyro_z, rad/s");
-        else if (namedChart.name == "mag_x")
-            _plotOnChart(namedChart.chart, magx, xLabel, "M_x, uT");
-        else if (namedChart.name == "mag_y")
-            _plotOnChart(namedChart.chart, magy, xLabel, "M_y, uT");
-        else if (namedChart.name == "mag_z")
-            _plotOnChart(namedChart.chart, magz, xLabel, "M_z, uT");
-        namedChart.chart->chart()->legend()->hide();
-        namedChart.chart->setRenderHint(QPainter::Antialiasing, true);
-    }
-}
-
-//-----------------------------------------------------------------------------
-void MainWin::_plotOnChart(QChartView* chart, DataList plotData,
-                           const QString xLabel, const QString yLabel)
-{
-    QLineSeries *series = new QLineSeries(chart);
-    foreach (Data data, plotData)
-        series->append(data.first);
-    chart->chart()->addSeries(series);
-
-    QValueAxis *axisX = new QValueAxis();
-    axisX->setTitleText(xLabel);
-    axisX->setLabelFormat("%.2f");
-    axisX->setTickCount(series->count());
-    chart->chart()->addAxis(axisX, Qt::AlignBottom);
-    series->attachAxis(axisX);
-
-    QValueAxis *axisY = new QValueAxis();
-    axisY->setTitleText(yLabel);
-    axisY->setLabelFormat("%.2f");
-    axisY->setTickCount(series->count());
-    chart->chart()->addAxis(axisY, Qt::AlignLeft);
-    series->attachAxis(axisY);
 }

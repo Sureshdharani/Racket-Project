@@ -4,10 +4,10 @@
 #
 #-------------------------------------------------
 
-QT       += core gui charts
+QT       += core gui
 
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets charts
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
 TARGET = RacketMotionServer
 TEMPLATE = app
@@ -26,10 +26,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        mainwin.cpp
+        mainwin.cpp \
+    qcustomplot/qcustomplot.cpp
 
 HEADERS += \
-        mainwin.h
+        mainwin.h \
+    qcustomplot/qcustomplot.h
 
 FORMS += \
         mainwin.ui
