@@ -4,7 +4,7 @@
 #include <QUdpSocket>
 
 struct SensData {
-    double t = 0;
+    double timeStamp = 0;
 
     double accX = 0;
     double accY = 0;
@@ -43,6 +43,7 @@ private:  // variables
 
     QUdpSocket* _socket;
     SensData _sensData;
+    SensData _sensDataPrev;
 };
 
 #endif // RACKETSENSORCLIENT_H

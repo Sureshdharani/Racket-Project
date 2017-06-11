@@ -56,6 +56,22 @@ void RacketSensorServer::readPendingDatagrams()
                           &sender, &senderPort);
 
     QString data(buffer);
+
+    const QString str = "90594.75079, 3,  -0.059,  0.098,  9.826, 4,  -0.000,  0.001,  0.001, 5,  16.191, 12.642,-34.497";
+    const QString del3 = ", 3,  ";
+    const QString del4 = ", 4,  ";
+    const QString del5 = ", 5,  ";
+
+    if (!str.isEmpty())
+    {
+        QStringList list;
+        if (str.contains(del3, Qt::CaseInsensitive))
+        {
+            list = str.split(del3, QString::SkipEmptyParts);
+            _sensData.timeStamp = list.at(0).toDouble();
+        }
+    }
+
     // data.replace(" ", "");
 
     // qDebug() << "Message from: " << sender.toString();
