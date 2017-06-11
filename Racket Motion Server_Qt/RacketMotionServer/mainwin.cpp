@@ -13,7 +13,7 @@ MainWin::MainWin(QWidget *parent) :
     _plotData(_dataTable.at(0), _dataTable.at(1), _dataTable.at(2),
               _dataTable.at(3), _dataTable.at(4), _dataTable.at(5),
               _dataTable.at(6), _dataTable.at(7), _dataTable.at(8));
-    //_updateCharts();
+    _updateCharts();
 }
 
 //-----------------------------------------------------------------------------
