@@ -24,10 +24,10 @@ if isPresaved == 1
                                             [testName, '_mag.pcm'],...
                                             dt, range, type);
 else
-    connector('off');
-    connector('on', '12345');
-    m = mobiledev;
-    m.Logging = 1;
+%     connector('off');
+%     connector('on', '12345');
+%     m = mobiledev;
+%     m.Logging = 1;
 end
 % Read from android mobile phone
 
@@ -43,23 +43,32 @@ mag = [];
 ax = [];
 
 % N = length(t_dat);
-N = Inf;
+N = 10;
 tt = [];
+
+u = udp('127.0.0.1', 'LocalPort', 5555);
+fopen(u);
 for k=1:N
     t_beg = tic;
 %     t = [t, t_dat(k)];
 %     acc = [acc, acc_dat(:,k)];
 %     gyro = [gyro, gyro_dat(:,k)];
 %     mag = [mag, mag_dat(:,k)];
-    acc = [acc, m.Acceleration'];
-    gyro = [gyro, m.AngularVelocity'];
-    mag = [mag, m.MagneticField'];
-    
-    plotSensData(hFig, dt, acc, gyro, mag);
-    t_samp = toc(t_beg);
-    
-    tt = [tt, t_samp];
+%     acc = [acc, m.Acceleration'];
+%     gyro = [gyro, m.AngularVelocity'];
+%     mag = [mag, m.MagneticField'];
+%     
+%     plotSensData(hFig, dt, acc, gyro, mag);
+%     t_samp = toc(t_beg);
+%     
+%     tt = [tt, t_samp];
+
+    dat = fgetl(u);
+    if ~isempty(dat)
+        disp([num2str(k) , ': ', num2str(dat)]);
+    end
 end
+fclose(u);
 
 
 
