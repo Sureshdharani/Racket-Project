@@ -22,6 +22,11 @@ MainWin::MainWin(QWidget *parent) :
     _plotsList.append(ui->wid33);
 
     setUpPlots();
+
+    // Start and run racket sensor client
+    _sensServer = new RacketSensorServer(this);
+
+    connectSignals();
 }
 
 //-----------------------------------------------------------------------------
@@ -33,7 +38,14 @@ MainWin::~MainWin()
 //-----------------------------------------------------------------------------
 void MainWin::connectSignals()
 {
-    // connect(m_themeComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(updateUI()));
+    connect(_sensServer, SIGNAL(sendState(const QString)),
+            this, SLOT(showState(const QString)));
+}
+
+//-----------------------------------------------------------------------------
+void MainWin::showState(const QString state)
+{
+    QMessageBox::critical(this, "State notification", state, 1, 0);
 }
 
 

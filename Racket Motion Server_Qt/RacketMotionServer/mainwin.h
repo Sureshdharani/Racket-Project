@@ -15,6 +15,8 @@
 
 #include <qcustomplot/qcustomplot.h>
 
+#include <racketsensorserver.h>
+
 namespace Ui {
 class MainWin;
 }
@@ -25,6 +27,7 @@ class MainWin : public QMainWindow
 
 public slots:
     void realTimeDataSlot();
+    void showState(const QString);
 
 public:
     explicit MainWin(QWidget *parent = 0);
@@ -47,6 +50,7 @@ private:  // functions
 private:  // variables
     Ui::MainWin *ui;
 
+    RacketSensorServer* _sensServer;
     QList<QCustomPlot*> _plotsList;
     QTimer _dataTimer;
 };
