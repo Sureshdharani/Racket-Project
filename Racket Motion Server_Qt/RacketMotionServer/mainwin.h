@@ -28,6 +28,7 @@ class MainWin : public QMainWindow
 public slots:
     void realTimeDataSlot();
     void showState(const QString);
+    void rcvSensData(const SensData sensData);
 
 public:
     explicit MainWin(QWidget *parent = 0);

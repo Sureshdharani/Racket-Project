@@ -48,7 +48,6 @@ void RacketSensorServer::readPendingDatagrams()
 
     // Packet format:
     // "90594.75079, 3,  -0.059,  0.098,  9.826, 4,  -0.000,  0.001,  0.001, 5,  16.191, 12.642,-34.497"
-    // "92309.44280, 3,  -0.090,  0.013,  9.746, 4,   0.001,  0.001, -0.001, 5,  17.903, 10.240,-33.698"
     // "92309.37615, 3,  -0.043,  0.033,  9.722, 4,  -0.001, -0.001, -0.001"
     // "92272.20973, 3,  -1.355, -0.098, 10.935"
 
@@ -56,28 +55,76 @@ void RacketSensorServer::readPendingDatagrams()
                           &sender, &senderPort);
 
     QString data(buffer);
+    _sensData = processInputPacket(data, _sensDataPrev);
+    _sensDataPrev = _sensData;
 
-    const QString str = "90594.75079, 3,  -0.059,  0.098,  9.826, 4,  -0.000,  0.001,  0.001, 5,  16.191, 12.642,-34.497";
+    emit(sendSensData(_sensData));
+
+    /*
+    const QString str1 = "90594.75079, 3,  -0.059,  0.098,  9.826, 4,  -0.000,  0.001,  0.001, 5,  16.191, 12.642,-34.497";
+    const QString str2 = "92309.37615, 3,  -0.043,  0.033,  9.722, 4,  -0.001, -0.001, -0.001";
+    const QString str3 = "92272.20973, 3,  -1.355, -0.098, 10.935";
+
+    qDebug() << "Message: " << data;
+
+    _sensData = processInputPacket(str1, _sensDataPrev);
+    _sensDataPrev = _sensData;
+    qDebug() << "SensData1: " << _sensData.toString();
+
+    _sensData = processInputPacket(str1, _sensDataPrev);
+    _sensDataPrev = _sensData;
+    qDebug() << "SensData2: " << _sensData.toString();
+
+    _sensData = processInputPacket(str1, _sensDataPrev);
+    _sensDataPrev = _sensData;
+    qDebug() << "SensData3: " << _sensData.toString();
+    qDebug() << "--------------------------------";
+    */
+}
+
+//-----------------------------------------------------------------------------
+SensData RacketSensorServer::processInputPacket(const QString packet,
+                                                const SensData prevSensData)
+{
+    SensData sensData = prevSensData;
     const QString del3 = ", 3,  ";
     const QString del4 = ", 4,  ";
     const QString del5 = ", 5,  ";
+    const QString del = ",";
 
-    if (!str.isEmpty())
-    {
-        QStringList list;
-        if (str.contains(del3, Qt::CaseInsensitive))
-        {
-            list = str.split(del3, QString::SkipEmptyParts);
-            _sensData.timeStamp = list.at(0).toDouble();
-        }
-    }
+    if (packet.isEmpty()) return sensData;
 
-    // data.replace(" ", "");
+    QStringList list(packet);
 
-    // qDebug() << "Message from: " << sender.toString();
-    // qDebug() << "Message port: " << senderPort;
-    qDebug() << "Message: " << data;
-    qDebug() << "--------------------------------";
+    QStringList acc;
+    QStringList gyro;
+    QStringList mag;
 
-    // int k = 0;
+    list = list.at(0).split(del3, QString::SkipEmptyParts);
+    sensData.timeStamp = list.at(0).toDouble();
+    if (list.size() == 1) return sensData;
+    list = QStringList(list.back());
+
+    list = list.at(0).split(del4, QString::SkipEmptyParts);
+    acc = QString(list.at(0)).replace(" ", "").split(del, QString::SkipEmptyParts);
+    sensData.accX = acc.at(0).toDouble();
+    sensData.accY = acc.at(1).toDouble();
+    sensData.accZ = acc.at(2).toDouble();
+    if (list.size() == 1) return sensData;
+    list = QStringList(list.back());
+
+    list = list.at(0).split(del5, QString::SkipEmptyParts);
+    gyro = QString(list.at(0)).replace(" ", "").split(del, QString::SkipEmptyParts);
+    sensData.gyroX = gyro.at(0).toDouble();
+    sensData.gyroY = gyro.at(1).toDouble();
+    sensData.gyroZ = gyro.at(2).toDouble();
+    if (list.size() == 1) return sensData;
+    list = QStringList(list.back());
+
+    mag = QString(list.at(0)).replace(" ", "").split(del, QString::SkipEmptyParts);
+    sensData.magX = mag.at(0).toDouble();
+    sensData.magY = mag.at(1).toDouble();
+    sensData.magZ = mag.at(2).toDouble();
+
+    return sensData;
 }

@@ -27,6 +27,10 @@ MainWin::MainWin(QWidget *parent) :
     _sensServer = new RacketSensorServer(this);
 
     connectSignals();
+
+    // setup a timer that repeatedly calls MainWindow::realtimeDataSlot:
+    // connect(&_dataTimer, SIGNAL(timeout()), this, SLOT(realTimeDataSlot()));
+    // _dataTimer.start(0); // Interval 0 means to refresh as fast as possible
 }
 
 //-----------------------------------------------------------------------------
@@ -40,6 +44,44 @@ void MainWin::connectSignals()
 {
     connect(_sensServer, SIGNAL(sendState(const QString)),
             this, SLOT(showState(const QString)));
+
+    connect(_sensServer, SIGNAL(sendSensData(const SensData)),
+            this, SLOT(rcvSensData(const SensData)));
+}
+
+//-----------------------------------------------------------------------------
+void MainWin::rcvSensData(const SensData sensData)
+{
+    _appendToPlot(ui->wid11, sensData.timeStamp, sensData.accX);
+    _appendToPlot(ui->wid21, sensData.timeStamp, sensData.accY);
+    _appendToPlot(ui->wid31, sensData.timeStamp, sensData.accZ);
+
+    _appendToPlot(ui->wid12, sensData.timeStamp, sensData.gyroX);
+    _appendToPlot(ui->wid22, sensData.timeStamp, sensData.gyroY);
+    _appendToPlot(ui->wid32, sensData.timeStamp, sensData.gyroZ);
+
+    _appendToPlot(ui->wid13, sensData.timeStamp, sensData.magX);
+    _appendToPlot(ui->wid23, sensData.timeStamp, sensData.magY);
+    _appendToPlot(ui->wid33, sensData.timeStamp, sensData.magZ);
+
+    // calculate frames per second:
+    static QTime time(QTime::currentTime());
+    double key = time.elapsed()/1000.0; // time elapsed since start, in seconds
+    static double lastPointKey = sensData.timeStamp;
+
+    static double lastFpsKey;
+    static int frameCount;
+    ++frameCount;
+    if (key-lastFpsKey > 2) // average fps over 2 seconds
+    {
+      ui->statusBar->showMessage(
+            QString("%1 FPS, Total Data points: %2")
+            .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
+            .arg(ui->wid11->graph(0)->data()->size())
+            , 0);
+      lastFpsKey = key;
+      frameCount = 0;
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -52,24 +94,23 @@ void MainWin::showState(const QString state)
 //-----------------------------------------------------------------------------
 void MainWin::setUpPlots()
 {
+    const QString timeFormat = "%h:%m:%s";  // "%h:%m:%s:%z"
+    const QString timeAxisLabel = "t, h:m:s";
+
     // acceleration plots:
-    _setUpPlot(ui->wid11, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "a_x, m/s^2");
-    _setUpPlot(ui->wid21, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "a_y, m/s^2");
-    _setUpPlot(ui->wid31, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "a_z, m/s^2");
+    _setUpPlot(ui->wid11, QColor(40, 110, 255), timeFormat, timeAxisLabel, "a_x, m/s^2");
+    _setUpPlot(ui->wid21, QColor(40, 110, 255), timeFormat, timeAxisLabel, "a_y, m/s^2");
+    _setUpPlot(ui->wid31, QColor(40, 110, 255), timeFormat, timeAxisLabel, "a_z, m/s^2");
 
     // gyro plots:
-    _setUpPlot(ui->wid12, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "w_x, rad/s");
-    _setUpPlot(ui->wid22, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "w_y, rad/s");
-    _setUpPlot(ui->wid32, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "w_z, rad/s");
+    _setUpPlot(ui->wid12, QColor(40, 110, 255), timeFormat, timeAxisLabel, "w_x, rad/s");
+    _setUpPlot(ui->wid22, QColor(40, 110, 255), timeFormat, timeAxisLabel, "w_y, rad/s");
+    _setUpPlot(ui->wid32, QColor(40, 110, 255), timeFormat, timeAxisLabel, "w_z, rad/s");
 
     // magnetic field plots:
-    _setUpPlot(ui->wid13, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "M_x, uT");
-    _setUpPlot(ui->wid23, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "M_y, uT");
-    _setUpPlot(ui->wid33, QColor(40, 110, 255), "%m:%s:%z", "t, m:s:ms", "M_z, uT");
-
-    // setup a timer that repeatedly calls MainWindow::realtimeDataSlot:
-    connect(&_dataTimer, SIGNAL(timeout()), this, SLOT(realTimeDataSlot()));
-    _dataTimer.start(0); // Interval 0 means to refresh as fast as possible
+    _setUpPlot(ui->wid13, QColor(40, 110, 255), timeFormat, timeAxisLabel, "M_x, uT");
+    _setUpPlot(ui->wid23, QColor(40, 110, 255), timeFormat, timeAxisLabel, "M_y, uT");
+    _setUpPlot(ui->wid33, QColor(40, 110, 255), timeFormat, timeAxisLabel, "M_z, uT");
 }
 
 //-----------------------------------------------------------------------------

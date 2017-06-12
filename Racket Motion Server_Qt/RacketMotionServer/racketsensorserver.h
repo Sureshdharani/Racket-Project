@@ -17,6 +17,33 @@ struct SensData {
     double magX = 0;
     double magY = 0;
     double magZ = 0;
+
+    QString toString()
+    {
+        QString str;
+        const char prec = 'f';
+        const int numDigit = 6;
+        str.append("{");
+        str.append("timeStamp: " + QString::number(timeStamp, prec, numDigit) + "; ");
+
+        str.append("acc: ");
+        str.append("X: " + QString::number(accX, prec, numDigit) + ", ");
+        str.append("Y: " + QString::number(accY, prec, numDigit) + ", ");
+        str.append("Z: " + QString::number(accZ, prec, numDigit) + "; ");
+
+        str.append("gyro: ");
+        str.append("X: " + QString::number(gyroX, prec, numDigit) + ", ");
+        str.append("Y: " + QString::number(gyroY, prec, numDigit) + ", ");
+        str.append("Z: " + QString::number(gyroZ, prec, numDigit) + "; ");
+
+        str.append("mag: ");
+        str.append("X: " + QString::number(magX, prec, numDigit) + ", ");
+        str.append("Y: " + QString::number(magY, prec, numDigit) + ", ");
+        str.append("Z: " + QString::number(magZ, prec, numDigit));
+        str.append("}");
+
+        return str;
+    }
 };
 
 class RacketSensorServer : public QObject
@@ -26,6 +53,8 @@ class RacketSensorServer : public QObject
 public:  // functions
     explicit RacketSensorServer(QObject *parent = 0,
                                 const quint16 Port = 5555);
+    SensData processInputPacket(const QString packet,
+                                const SensData prevSensData);
 
 public:  // variables
     quint16 port;
@@ -36,6 +65,7 @@ public slots:
 
 signals:
     void sendState(const QString errorDescr);
+    void sendSensData(const SensData sensData);
 
 private:  // functions
 
