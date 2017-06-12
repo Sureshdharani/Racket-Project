@@ -57,8 +57,8 @@
       <property name="title">
        <string>Control Elements:</string>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="0" column="0">
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
           <widget class="QLabel" name="label">
@@ -69,7 +69,7 @@
             </sizepolicy>
            </property>
            <property name="text">
-            <string>Local Port:</string>
+            <string>Local port:</string>
            </property>
           </widget>
          </item>
@@ -80,6 +80,33 @@
            </property>
            <property name="text">
             <string>5555</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="1" column="0">
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Plot buffer size:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="potBufSzLnEd">
+           <property name="inputMask">
+            <string extracomment="Local Port"/>
+           </property>
+           <property name="text">
+            <string>10</string>
            </property>
           </widget>
          </item>

@@ -37,6 +37,7 @@ MainWin::MainWin(QWidget *parent) :
 //-----------------------------------------------------------------------------
 MainWin::~MainWin()
 {
+    delete _sensServer;
     delete ui;
 }
 
@@ -47,6 +48,8 @@ void MainWin::connectSignals()
             this, SLOT(showState(const QString)));
     connect(_sensServer, SIGNAL(sendSensData(const SensData)),
             this, SLOT(rcvSensData(const SensData)));
+
+    // Line edit objects
     connect(ui->localPortLnEd, SIGNAL(editingFinished()),
             this, SLOT(portChanged()));
 }
@@ -60,17 +63,18 @@ void MainWin::portChanged()
 //-----------------------------------------------------------------------------
 void MainWin::rcvSensData(const SensData sensData)
 {
-    _appendToPlot(ui->wid11, sensData.timeStamp, sensData.accX);
-    _appendToPlot(ui->wid21, sensData.timeStamp, sensData.accY);
-    _appendToPlot(ui->wid31, sensData.timeStamp, sensData.accZ);
+    const unsigned int scrollRange = ui->potBufSzLnEd->text().toInt();
+    _appendToPlot(ui->wid11, sensData.timeStamp, sensData.accX, scrollRange);
+    _appendToPlot(ui->wid21, sensData.timeStamp, sensData.accY, scrollRange);
+    _appendToPlot(ui->wid31, sensData.timeStamp, sensData.accZ, scrollRange);
 
-    _appendToPlot(ui->wid12, sensData.timeStamp, sensData.gyroX);
-    _appendToPlot(ui->wid22, sensData.timeStamp, sensData.gyroY);
-    _appendToPlot(ui->wid32, sensData.timeStamp, sensData.gyroZ);
+    _appendToPlot(ui->wid12, sensData.timeStamp, sensData.gyroX, scrollRange);
+    _appendToPlot(ui->wid22, sensData.timeStamp, sensData.gyroY, scrollRange);
+    _appendToPlot(ui->wid32, sensData.timeStamp, sensData.gyroZ, scrollRange);
 
-    _appendToPlot(ui->wid13, sensData.timeStamp, sensData.magX);
-    _appendToPlot(ui->wid23, sensData.timeStamp, sensData.magY);
-    _appendToPlot(ui->wid33, sensData.timeStamp, sensData.magZ);
+    _appendToPlot(ui->wid13, sensData.timeStamp, sensData.magX, scrollRange);
+    _appendToPlot(ui->wid23, sensData.timeStamp, sensData.magY, scrollRange);
+    _appendToPlot(ui->wid33, sensData.timeStamp, sensData.magZ, scrollRange);
 
     // calculate frames per second:
     static QTime time(QTime::currentTime());
@@ -79,16 +83,14 @@ void MainWin::rcvSensData(const SensData sensData)
     static double lastFpsKey;
     static int frameCount;
     ++frameCount;
-    if (key-lastFpsKey > 2) // average fps over 2 seconds
-    {
-      ui->statusBar->showMessage(
-            QString("%1 FPS, Total Data points: %2")
-            .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
-            .arg(ui->wid11->graph(0)->data()->size())
-            , 0);
-      lastFpsKey = key;
-      frameCount = 0;
-    }
+    ui->statusBar->showMessage(
+          QString("%1 FPS, Total Data points: %2")
+          .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
+          .arg(ui->wid11->graph(0)->data()->size())
+          , 0);
+
+    lastFpsKey = key;
+   frameCount = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -101,6 +103,7 @@ void MainWin::showState(const QString state)
 void MainWin::setUpGUI()
 {
     ui->localPortLnEd->setValidator(new QIntValidator(1, 65536, this));
+    ui->potBufSzLnEd->setValidator(new QIntValidator(5, 1000, this));
 }
 
 
