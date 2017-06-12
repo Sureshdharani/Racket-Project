@@ -32,6 +32,7 @@ MainWin::MainWin(QWidget *parent) :
     // setup a timer that repeatedly calls MainWindow::realtimeDataSlot:
     // connect(&_dataTimer, SIGNAL(timeout()), this, SLOT(realTimeDataSlot()));
     // _dataTimer.start(0); // Interval 0 means to refresh as fast as possible
+    _prevTimePoint = QTime::currentTime().elapsed();
 }
 
 //-----------------------------------------------------------------------------
@@ -79,18 +80,20 @@ void MainWin::rcvSensData(const SensData sensData)
     // calculate frames per second:
     static QTime time(QTime::currentTime());
     double key = time.elapsed()/1000.0; // time elapsed since start, in seconds
+    double t1 = time.elapsed();
 
     static double lastFpsKey;
     static int frameCount;
     ++frameCount;
     ui->statusBar->showMessage(
-          QString("%1 FPS, Total Data points: %2")
+          QString("%1 FPS, Total Data points: %2, Processing time: %3 ms")
           .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
           .arg(ui->wid11->graph(0)->data()->size())
-          , 0);
+          .arg(t1 - _prevTimePoint, 0, 'f', 2), 0);
 
-    lastFpsKey = key;
+   lastFpsKey = key;
    frameCount = 0;
+   _prevTimePoint = t1;
 }
 
 //-----------------------------------------------------------------------------

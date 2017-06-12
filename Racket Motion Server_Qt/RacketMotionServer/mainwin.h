@@ -54,6 +54,7 @@ private:  // variables
 
     RacketSensorServer* _sensServer;
     QList<QCustomPlot*> _plotsList;
+    double _prevTimePoint;
     QTimer _dataTimer;
 };
 

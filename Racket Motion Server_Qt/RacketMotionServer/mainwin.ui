@@ -79,7 +79,7 @@
             <string extracomment="Local Port"/>
            </property>
            <property name="text">
-            <string>5555</string>
+            <string>5554</string>
            </property>
           </widget>
          </item>

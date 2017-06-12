@@ -52,7 +52,7 @@ class RacketSensorServer : public QObject
 
 public:  // functions
     explicit RacketSensorServer(QObject *parent = 0,
-                                const quint16 Port = 5555);
+                                const quint16 Port = 5554);
     SensData processInputPacket(const QString packet,
                                 const SensData prevSensData);
 
