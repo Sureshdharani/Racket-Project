@@ -29,6 +29,7 @@ public slots:
     void realTimeDataSlot();
     void showState(const QString);
     void rcvSensData(const SensData sensData);
+    void portChanged();
 
 public:
     explicit MainWin(QWidget *parent = 0);
@@ -36,8 +37,8 @@ public:
 
     // Connects signals
     void connectSignals();
-
     void setUpPlots();
+    void setUpGUI();
 
 private Q_SLOTS:
 

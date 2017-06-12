@@ -17,17 +17,8 @@ void RacketSensorServer::setListenIPPort(const quint16 Port) {
     _socket->abort();
     port = Port;
     bool isConnected = _socket->bind(port);
-
     if (!isConnected)
-    {
-        emit(sendState("Can't lsiten on port "
-                       + QString::number(port)));
-    }
-    else
-    {
-        emit(sendState("Listen on port "
-                       + QString::number(port)));
-    }
+        emit(sendState("Can't lsiten on port " + QString::number(port)));
 }
 
 //-----------------------------------------------------------------------------

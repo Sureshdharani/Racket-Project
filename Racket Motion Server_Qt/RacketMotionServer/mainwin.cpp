@@ -7,6 +7,7 @@ MainWin::MainWin(QWidget *parent) :
     ui(new Ui::MainWin)
 {
     ui->setupUi(this);
+    setUpGUI();
 
     // Save plots in the structure:
     _plotsList.append(ui->wid11);
@@ -44,9 +45,16 @@ void MainWin::connectSignals()
 {
     connect(_sensServer, SIGNAL(sendState(const QString)),
             this, SLOT(showState(const QString)));
-
     connect(_sensServer, SIGNAL(sendSensData(const SensData)),
             this, SLOT(rcvSensData(const SensData)));
+    connect(ui->localPortLnEd, SIGNAL(editingFinished()),
+            this, SLOT(portChanged()));
+}
+
+//-----------------------------------------------------------------------------
+void MainWin::portChanged()
+{
+    emit(_sensServer->setListenIPPort(ui->localPortLnEd->text()));
 }
 
 //-----------------------------------------------------------------------------
@@ -67,7 +75,6 @@ void MainWin::rcvSensData(const SensData sensData)
     // calculate frames per second:
     static QTime time(QTime::currentTime());
     double key = time.elapsed()/1000.0; // time elapsed since start, in seconds
-    static double lastPointKey = sensData.timeStamp;
 
     static double lastFpsKey;
     static int frameCount;
@@ -88,6 +95,12 @@ void MainWin::rcvSensData(const SensData sensData)
 void MainWin::showState(const QString state)
 {
     QMessageBox::critical(this, "State notification", state, 1, 0);
+}
+
+//-----------------------------------------------------------------------------
+void MainWin::setUpGUI()
+{
+    ui->localPortLnEd->setValidator(new QIntValidator(1, 65536, this));
 }
 
 

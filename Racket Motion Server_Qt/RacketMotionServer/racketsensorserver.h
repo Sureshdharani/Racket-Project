@@ -61,6 +61,7 @@ public:  // variables
 
 public slots:
     void setListenIPPort(const quint16 Port);
+    void setListenIPPort(const QString Port) { setListenIPPort(Port.toInt()); };
     void readPendingDatagrams();
 
 signals:
