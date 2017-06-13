@@ -17,6 +17,8 @@
 
 #include <racketsensorserver.h>
 
+#define PLOT_TIME_MS 70  // plot updating time in ms
+
 namespace Ui {
 class MainWin;
 }
@@ -54,7 +56,9 @@ private:  // variables
 
     RacketSensorServer* _sensServer;
     QList<QCustomPlot*> _plotsList;
-    double _prevTimePoint;
+    double _prevProcessTimePoint;
+    double _prevPlotTimePoint;
+    double _prevTimeStamp;
     QTimer _dataTimer;
 };
 

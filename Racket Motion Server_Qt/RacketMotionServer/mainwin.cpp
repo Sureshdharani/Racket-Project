@@ -32,7 +32,9 @@ MainWin::MainWin(QWidget *parent) :
     // setup a timer that repeatedly calls MainWindow::realtimeDataSlot:
     // connect(&_dataTimer, SIGNAL(timeout()), this, SLOT(realTimeDataSlot()));
     // _dataTimer.start(0); // Interval 0 means to refresh as fast as possible
-    _prevTimePoint = QTime::currentTime().elapsed();
+    _prevProcessTimePoint = QTime::currentTime().elapsed();
+    _prevPlotTimePoint = QTime::currentTime().elapsed();
+    _prevTimeStamp = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -64,19 +66,6 @@ void MainWin::portChanged()
 //-----------------------------------------------------------------------------
 void MainWin::rcvSensData(const SensData sensData)
 {
-    const unsigned int scrollRange = ui->potBufSzLnEd->text().toInt();
-    _appendToPlot(ui->wid11, sensData.timeStamp, sensData.accX, scrollRange);
-    _appendToPlot(ui->wid21, sensData.timeStamp, sensData.accY, scrollRange);
-    _appendToPlot(ui->wid31, sensData.timeStamp, sensData.accZ, scrollRange);
-
-    _appendToPlot(ui->wid12, sensData.timeStamp, sensData.gyroX, scrollRange);
-    _appendToPlot(ui->wid22, sensData.timeStamp, sensData.gyroY, scrollRange);
-    _appendToPlot(ui->wid32, sensData.timeStamp, sensData.gyroZ, scrollRange);
-
-    _appendToPlot(ui->wid13, sensData.timeStamp, sensData.magX, scrollRange);
-    _appendToPlot(ui->wid23, sensData.timeStamp, sensData.magY, scrollRange);
-    _appendToPlot(ui->wid33, sensData.timeStamp, sensData.magZ, scrollRange);
-
     // calculate frames per second:
     static QTime time(QTime::currentTime());
     double key = time.elapsed()/1000.0; // time elapsed since start, in seconds
@@ -84,16 +73,52 @@ void MainWin::rcvSensData(const SensData sensData)
 
     static double lastFpsKey;
     static int frameCount;
-    ++frameCount;
+    double dtPlot = t1 - _prevPlotTimePoint;
+
+    // Plot only each PLOT_TIME_MS:
+    if (dtPlot >= PLOT_TIME_MS)  // in ms
+    {
+        const unsigned int scrollRange = ui->potBufSzLnEd->text().toInt();
+        _appendToPlot(ui->wid11, sensData.timeStamp, sensData.accX, scrollRange);
+        _appendToPlot(ui->wid21, sensData.timeStamp, sensData.accY, scrollRange);
+        _appendToPlot(ui->wid31, sensData.timeStamp, sensData.accZ, scrollRange);
+
+        _appendToPlot(ui->wid12, sensData.timeStamp, sensData.gyroX, scrollRange);
+        _appendToPlot(ui->wid22, sensData.timeStamp, sensData.gyroY, scrollRange);
+        _appendToPlot(ui->wid32, sensData.timeStamp, sensData.gyroZ, scrollRange);
+
+        _appendToPlot(ui->wid13, sensData.timeStamp, sensData.magX, scrollRange);
+        _appendToPlot(ui->wid23, sensData.timeStamp, sensData.magY, scrollRange);
+        _appendToPlot(ui->wid33, sensData.timeStamp, sensData.magZ, scrollRange);
+
+        ++frameCount;
+        _prevPlotTimePoint = t1;
+
+        ui->plotTimeMSLabel->setText(QString::number(dtPlot, 'f', 2));
+        ui->FPSLabel->setText(QString::number(frameCount/(key-lastFpsKey), 'f', 2));
+        ui->totDataPtLabel->setText(QString::number(ui->wid11->graph(0)->data()->size()));
+        ui->transferTimeMSLabel->setText(
+                    QString::number(
+                        (sensData.timeStamp - _prevTimeStamp) * 1000, 'f', 2));
+        ui->procTimeMSLabel->setText(QString::number(t1 - _prevProcessTimePoint, 'f', 2));
+    }
+    /*
     ui->statusBar->showMessage(
-          QString("%1 FPS, Total Data points: %2, Processing time: %3 ms")
+          QString("%1 FPS, Total Data points: %2, Processing time: %3 ms, "
+                  "Transfer Time: %4 ms, Plot Time: %5")
           .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
           .arg(ui->wid11->graph(0)->data()->size())
-          .arg(t1 - _prevTimePoint, 0, 'f', 2), 0);
+          .arg(t1 - _prevProcessTimePoint, 0, 'f', 2)
+          .arg((sensData.timeStamp - _prevTimeStamp) * 1000, 0, 'f', 4)
+          .arg(dtPlot, 0, 'f', 4), 0);
+   */
 
+
+   // update timer variables
    lastFpsKey = key;
    frameCount = 0;
-   _prevTimePoint = t1;
+   _prevProcessTimePoint = t1;
+   _prevTimeStamp = sensData.timeStamp;
 }
 
 //-----------------------------------------------------------------------------
@@ -163,7 +188,7 @@ void MainWin::_appendToPlot(QCustomPlot *plot, const double key,
   // rescale value (vertical) axis to fit the current data:
   plot->graph(0)->rescaleValueAxis(true);
 
-  // make key axis range scroll with the data (at a constant range size of 20):
+  // make key axis range scroll with the data:
   plot->xAxis->setRange(key, scrollRange, Qt::AlignRight);
   plot->replot();
 }
