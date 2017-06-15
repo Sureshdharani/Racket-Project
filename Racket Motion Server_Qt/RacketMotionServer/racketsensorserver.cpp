@@ -9,6 +9,8 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     port = Port;
     _socket->bind(port);
 
+    _sensData = std::deque<SensDataPacket>(NUM_PACKETS);
+
     connect(_socket, SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
 }
 
@@ -46,9 +48,12 @@ void RacketSensorServer::readPendingDatagrams()
                           &sender, &senderPort);
 
     QString data(buffer);
-    _sensData = processInputPacket(data, _sensDataPrev);
-    _sensDataPrev = _sensData;
+    SensDataPacket sensDataPacketPrev = _sensData.empty() ? SensDataPacket() : _sensData.back();
+    if (_sensData.size() >= NUM_PACKETS)  // adopt size if it exceeds array size
+        _sensData.pop_front();  // delete last element
 
+    // Append new element
+    _sensData.push_back(processInputPacket(data, sensDataPacketPrev));
     emit(sendSensData(_sensData));
 
     /*
@@ -58,32 +63,32 @@ void RacketSensorServer::readPendingDatagrams()
 
     qDebug() << "Message: " << data;
 
-    _sensData = processInputPacket(str1, _sensDataPrev);
-    _sensDataPrev = _sensData;
-    qDebug() << "SensData1: " << _sensData.toString();
+    _sensDataPacket = processInputPacket(str1, _sensDataPacketPrev);
+    _sensDataPacketPrev = _sensDataPacket;
+    qDebug() << "sensDataPacket1: " << _sensDataPacket.toString();
 
-    _sensData = processInputPacket(str1, _sensDataPrev);
-    _sensDataPrev = _sensData;
-    qDebug() << "SensData2: " << _sensData.toString();
+    _sensDataPacket = processInputPacket(str1, _sensDataPacketPrev);
+    _sensDataPacketPrev = _sensDataPacket;
+    qDebug() << "sensDataPacket2: " << _sensDataPacket.toString();
 
-    _sensData = processInputPacket(str1, _sensDataPrev);
-    _sensDataPrev = _sensData;
-    qDebug() << "SensData3: " << _sensData.toString();
+    _sensDataPacket = processInputPacket(str1, _sensDataPacketPrev);
+    _sensDataPacketPrev = _sensDataPacket;
+    qDebug() << "sensDataPacket3: " << _sensDataPacket.toString();
     qDebug() << "--------------------------------";
     */
 }
 
 //-----------------------------------------------------------------------------
-SensData RacketSensorServer::processInputPacket(const QString packet,
-                                                const SensData prevSensData)
+SensDataPacket RacketSensorServer::processInputPacket(const QString packet,
+                                         const SensDataPacket prevSensDataPacket)
 {
-    SensData sensData = prevSensData;
+    SensDataPacket sensDataPacket = prevSensDataPacket;
     const QString del3 = ", 3,  ";
     const QString del4 = ", 4,  ";
     const QString del5 = ", 5,  ";
     const QString del = ",";
 
-    if (packet.isEmpty()) return sensData;
+    if (packet.isEmpty()) return sensDataPacket;
 
     QStringList list(packet);
 
@@ -92,30 +97,30 @@ SensData RacketSensorServer::processInputPacket(const QString packet,
     QStringList mag;
 
     list = list.at(0).split(del3, QString::SkipEmptyParts);
-    sensData.timeStamp = list.at(0).toDouble();
-    if (list.size() == 1) return sensData;
+    sensDataPacket.timeStamp = list.at(0).toDouble();
+    if (list.size() == 1) return sensDataPacket;
     list = QStringList(list.back());
 
     list = list.at(0).split(del4, QString::SkipEmptyParts);
     acc = QString(list.at(0)).replace(" ", "").split(del, QString::SkipEmptyParts);
-    sensData.accX = acc.at(0).toDouble();
-    sensData.accY = acc.at(1).toDouble();
-    sensData.accZ = acc.at(2).toDouble();
-    if (list.size() == 1) return sensData;
+    sensDataPacket.acc.x = acc.at(0).toDouble();
+    sensDataPacket.acc.y = acc.at(1).toDouble();
+    sensDataPacket.acc.z = acc.at(2).toDouble();
+    if (list.size() == 1) return sensDataPacket;
     list = QStringList(list.back());
 
     list = list.at(0).split(del5, QString::SkipEmptyParts);
     gyro = QString(list.at(0)).replace(" ", "").split(del, QString::SkipEmptyParts);
-    sensData.gyroX = gyro.at(0).toDouble();
-    sensData.gyroY = gyro.at(1).toDouble();
-    sensData.gyroZ = gyro.at(2).toDouble();
-    if (list.size() == 1) return sensData;
+    sensDataPacket.gyro.x = gyro.at(0).toDouble();
+    sensDataPacket.gyro.y = gyro.at(1).toDouble();
+    sensDataPacket.gyro.z = gyro.at(2).toDouble();
+    if (list.size() == 1) return sensDataPacket;
     list = QStringList(list.back());
 
     mag = QString(list.at(0)).replace(" ", "").split(del, QString::SkipEmptyParts);
-    sensData.magX = mag.at(0).toDouble();
-    sensData.magY = mag.at(1).toDouble();
-    sensData.magZ = mag.at(2).toDouble();
+    sensDataPacket.mag.x = mag.at(0).toDouble();
+    sensDataPacket.mag.y = mag.at(1).toDouble();
+    sensDataPacket.mag.z = mag.at(2).toDouble();
 
-    return sensData;
+    return sensDataPacket;
 }

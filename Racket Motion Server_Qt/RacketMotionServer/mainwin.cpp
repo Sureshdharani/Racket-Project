@@ -47,14 +47,19 @@ MainWin::~MainWin()
 //-----------------------------------------------------------------------------
 void MainWin::connectSignals()
 {
-    connect(_sensServer, SIGNAL(sendState(const QString)),
-            this, SLOT(showState(const QString)));
-    connect(_sensServer, SIGNAL(sendSensData(const SensData)),
-            this, SLOT(rcvSensData(const SensData)));
+    bool isCon = false;
+    isCon = connect(_sensServer, SIGNAL(sendState(const QString)),
+                    this, SLOT(showState(const QString)));
+    Q_ASSERT(!isCon);
+
+    isCon = connect(_sensServer, SIGNAL(sendSensData(const SensData)),
+                    this, SLOT(rcvSensData(const SensData)));
+    Q_ASSERT(!isCon);
 
     // Line edit objects
-    connect(ui->localPortLnEd, SIGNAL(editingFinished()),
-            this, SLOT(portChanged()));
+    isCon = connect(ui->localPortLnEd, SIGNAL(editingFinished()),
+                    this, SLOT(portChanged()));
+    Q_ASSERT(!isCon);
 }
 
 //-----------------------------------------------------------------------------
@@ -79,17 +84,9 @@ void MainWin::rcvSensData(const SensData sensData)
     if (dtPlot >= PLOT_TIME_MS)  // in ms
     {
         const unsigned int scrollRange = ui->potBufSzLnEd->text().toInt();
-        _appendToPlot(ui->wid11, sensData.timeStamp, sensData.accX, scrollRange);
-        _appendToPlot(ui->wid21, sensData.timeStamp, sensData.accY, scrollRange);
-        _appendToPlot(ui->wid31, sensData.timeStamp, sensData.accZ, scrollRange);
-
-        _appendToPlot(ui->wid12, sensData.timeStamp, sensData.gyroX, scrollRange);
-        _appendToPlot(ui->wid22, sensData.timeStamp, sensData.gyroY, scrollRange);
-        _appendToPlot(ui->wid32, sensData.timeStamp, sensData.gyroZ, scrollRange);
-
-        _appendToPlot(ui->wid13, sensData.timeStamp, sensData.magX, scrollRange);
-        _appendToPlot(ui->wid23, sensData.timeStamp, sensData.magY, scrollRange);
-        _appendToPlot(ui->wid33, sensData.timeStamp, sensData.magZ, scrollRange);
+        // QtConcurrent::run(this, &MainWin::_appendToPlot, ui->wid11,
+        // sensDataPacket.timeStamp, sensDataPacket.acc.x, scrollRange);
+        _updatePlots(sensData, scrollRange);
 
         ++frameCount;
         _prevPlotTimePoint = t1;
@@ -99,7 +96,7 @@ void MainWin::rcvSensData(const SensData sensData)
         ui->totDataPtLabel->setText(QString::number(ui->wid11->graph(0)->data()->size()));
         ui->transferTimeMSLabel->setText(
                     QString::number(
-                        (sensData.timeStamp - _prevTimeStamp) * 1000, 'f', 2));
+                        (sensData.back().timeStamp - _prevTimeStamp) * 1000, 'f', 2));
         ui->procTimeMSLabel->setText(QString::number(t1 - _prevProcessTimePoint, 'f', 2));
     }
     /*
@@ -118,7 +115,7 @@ void MainWin::rcvSensData(const SensData sensData)
    lastFpsKey = key;
    frameCount = 0;
    _prevProcessTimePoint = t1;
-   _prevTimeStamp = sensData.timeStamp;
+   _prevTimeStamp = sensData.back().timeStamp;
 }
 
 //-----------------------------------------------------------------------------
@@ -194,33 +191,20 @@ void MainWin::_appendToPlot(QCustomPlot *plot, const double key,
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::realTimeDataSlot()
+void MainWin::_updatePlots(SensData sensData, const int scrollRange)
 {
-    static QTime time(QTime::currentTime());
-    // calculate two new data points:
-    double key = time.elapsed()/1000.0; // time elapsed since start of demo, in seconds
-    static double lastPointKey = 0;
-    if (key-lastPointKey > 0.0001) // at most add point every 0.1 ms
-    {
-      foreach(QCustomPlot* plot, _plotsList)
-        _appendToPlot(plot, key, qSin(key)
-                      + qrand()/(double)RAND_MAX*1*qSin(key/0.3843));
+    const double t = sensData.back().timeStamp;
+    const SensDataPacket packet = sensData.back();
 
-      lastPointKey = key;
-    }
+    _appendToPlot(ui->wid11, t, packet.acc.x, scrollRange);
+    _appendToPlot(ui->wid21, t, packet.acc.y, scrollRange);
+    _appendToPlot(ui->wid31, t, packet.acc.z, scrollRange);
 
-    // calculate frames per second:
-    static double lastFpsKey;
-    static int frameCount;
-    ++frameCount;
-    if (key-lastFpsKey > 2) // average fps over 2 seconds
-    {
-      ui->statusBar->showMessage(
-            QString("%1 FPS, Total Data points: %2")
-            .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
-            .arg(ui->wid11->graph(0)->data()->size())
-            , 0);
-      lastFpsKey = key;
-      frameCount = 0;
-    }
+    _appendToPlot(ui->wid12, t, packet.gyro.x, scrollRange);
+    _appendToPlot(ui->wid22, t, packet.gyro.y, scrollRange);
+    _appendToPlot(ui->wid32, t, packet.gyro.z, scrollRange);
+
+    _appendToPlot(ui->wid13, t, packet.mag.x, scrollRange);
+    _appendToPlot(ui->wid23, t, packet.mag.y, scrollRange);
+    _appendToPlot(ui->wid33, t, packet.mag.z, scrollRange);
 }

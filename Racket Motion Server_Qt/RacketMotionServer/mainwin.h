@@ -4,6 +4,10 @@
 #include <QMainWindow>
 #include <QtCore/QTime>
 
+#include <QThread>
+#include <QtConcurrent>
+#include <QtConcurrentRun>
+
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QFormLayout>
@@ -14,10 +18,9 @@
 #include <QtWidgets/QLabel>
 
 #include <qcustomplot/qcustomplot.h>
-
 #include <racketsensorserver.h>
 
-#define PLOT_TIME_MS 70  // plot updating time in ms
+#define PLOT_TIME_MS 50  // plot updating time in ms
 
 namespace Ui {
 class MainWin;
@@ -28,7 +31,6 @@ class MainWin : public QMainWindow
     Q_OBJECT
 
 public slots:
-    void realTimeDataSlot();
     void showState(const QString);
     void rcvSensData(const SensData sensData);
     void portChanged();
@@ -50,6 +52,7 @@ private:  // functions
                     const QString xLabel = "x", const QString yLabel = "y");
     void _appendToPlot(QCustomPlot *plot, const double key,
                        const double value, const int scrollRange = 10);
+    void _updatePlots(SensData sensData, const int scrollRange = 10);
 
 private:  // variables
     Ui::MainWin *ui;
@@ -59,7 +62,6 @@ private:  // variables
     double _prevProcessTimePoint;
     double _prevPlotTimePoint;
     double _prevTimeStamp;
-    QTimer _dataTimer;
 };
 
 #endif // MAINWIN_H

@@ -2,49 +2,48 @@
 #define RACKETSENSORSERVER_H
 
 #include <QUdpSocket>
+#include <deque>
 
-struct SensData {
-    double timeStamp = 0;
+#define NUM_PACKETS 10
 
-    double accX = 0;
-    double accY = 0;
-    double accZ = 0;
+// Represents 3D vector
+struct Vec3D {
+    float x = 0;
+    float y = 0;
+    float z = 0;
 
-    double gyroX = 0;
-    double gyroY = 0;
-    double gyroZ = 0;
-
-    double magX = 0;
-    double magY = 0;
-    double magZ = 0;
-
-    QString toString()
-    {
-        QString str;
-        const char prec = 'f';
-        const int numDigit = 6;
-        str.append("{");
-        str.append("timeStamp: " + QString::number(timeStamp, prec, numDigit) + "; ");
-
-        str.append("acc: ");
-        str.append("X: " + QString::number(accX, prec, numDigit) + ", ");
-        str.append("Y: " + QString::number(accY, prec, numDigit) + ", ");
-        str.append("Z: " + QString::number(accZ, prec, numDigit) + "; ");
-
-        str.append("gyro: ");
-        str.append("X: " + QString::number(gyroX, prec, numDigit) + ", ");
-        str.append("Y: " + QString::number(gyroY, prec, numDigit) + ", ");
-        str.append("Z: " + QString::number(gyroZ, prec, numDigit) + "; ");
-
-        str.append("mag: ");
-        str.append("X: " + QString::number(magX, prec, numDigit) + ", ");
-        str.append("Y: " + QString::number(magY, prec, numDigit) + ", ");
-        str.append("Z: " + QString::number(magZ, prec, numDigit));
-        str.append("}");
-
+    QString toString(const char prec = 'f', const int numDigit = 6) {
+        QString str = "";
+        str.append("[X: " + QString::number(x, prec, numDigit) + "; ");
+        str.append("Y: " + QString::number(y, prec, numDigit) + "; ");
+        str.append("Z: " + QString::number(z, prec, numDigit) + "]");
         return str;
     }
 };
+
+// Represents sensor data packet
+struct SensDataPacket {
+    double timeStamp = 0;
+
+    Vec3D acc;
+    Vec3D gyro;
+    Vec3D mag;
+
+    QString toString(const char prec = 'f', const int numDigit = 6)
+    {
+        QString str;
+        str.append("{");
+        str.append("timeStamp: " + QString::number(timeStamp, prec, numDigit) + "; ");
+        str.append("acc: " + acc.toString() + "; ");
+        str.append("gyro: " + gyro.toString() + "; ");
+        str.append("mag: " + mag.toString());
+        str.append("}");
+        return str;
+    }
+};
+
+// Sensor data FIFO:
+typedef std::deque<SensDataPacket> SensData;
 
 class RacketSensorServer : public QObject
 {
@@ -53,8 +52,8 @@ class RacketSensorServer : public QObject
 public:  // functions
     explicit RacketSensorServer(QObject *parent = 0,
                                 const quint16 Port = 5554);
-    SensData processInputPacket(const QString packet,
-                                const SensData prevSensData);
+    SensDataPacket processInputPacket(const QString packet,
+                                      const SensDataPacket prevSensDataPacket);
 
 public:  // variables
     quint16 port;
@@ -74,7 +73,6 @@ private:  // variables
 
     QUdpSocket* _socket;
     SensData _sensData;
-    SensData _sensDataPrev;
 };
 
 #endif // RACKETSENSORCLIENT_H
