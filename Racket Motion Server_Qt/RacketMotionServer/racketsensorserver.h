@@ -4,7 +4,7 @@
 #include <QUdpSocket>
 #include <deque>
 
-#define NUM_PACKETS 10
+#define NUM_PACKETS 10000  // number of packets from sensro to safe
 
 // Represents 3D vector
 struct Vec3D {
