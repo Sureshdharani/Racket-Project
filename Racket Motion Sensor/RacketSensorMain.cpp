@@ -5,6 +5,8 @@
 #include <string.h>
 #include <time.h>
 #include <array>
+#include <vector>
+#include <iostream>
 
 
 #define MPU_Addr 0x69
@@ -39,18 +41,19 @@
 
 struct Sensor_Meas_Raw_data
 {
-	int16_t Acc_x_Raw;
-	int16_t Acc_y_Raw;
-	int16_t Acc_z_Raw;
-	int16_t Gyro_x_Raw;
-	int16_t Gyro_y_Raw;
-	int16_t Gyro_z_Raw;
-	int16_t Mag_x_Raw;
-	int16_t Mag_y_Raw;
-	int16_t Mag_z_Raw;
-	long Timestamp;
+	int16_t Acc_x_Raw = 0;
+	int16_t Acc_y_Raw = 0;
+	int16_t Acc_z_Raw = 0;
+	int16_t Gyro_x_Raw = 0;
+	int16_t Gyro_y_Raw = 0;
+	int16_t Gyro_z_Raw = 0;
+	int16_t Mag_x_Raw = 0;
+	int16_t Mag_y_Raw = 0;
+	int16_t Mag_z_Raw = 0;
+	long Timestamp = 0;
 	
 };
+
 
 // MPU set to Idle mode
 void MPU_Sleep(int wait_time_us)
@@ -90,9 +93,9 @@ static unsigned long Get_TimeSinceEpochMillis()
   // Get Raw sensor data
 Sensor_Meas_Raw_data Get_RawData(mraa_i2c_context i2c)
 {
-	struct Sensor_Meas_Raw_data Sen_meaurement;
-	// mraa_i2c_context i2c = mraa_i2c_init(I2C_Bus_no); 
-	// mraa_i2c_address(i2c, MPU_Addr);
+
+	Sensor_Meas_Raw_data Sen_meaurement;
+
 	
 	uint8_t ax_rawH = mraa_i2c_read_byte_data(i2c, Acc_x_rawH_addr);
     uint8_t ax_rawL = mraa_i2c_read_byte_data(i2c, Acc_x_rawL_addr);
@@ -155,59 +158,43 @@ Sensor_Meas_Raw_data Get_RawData(mraa_i2c_context i2c)
 void Print(mraa_i2c_context i2c)
 {
 	
-	struct Sensor_Meas_Raw_data Buf_Sensor_data[Buf_Length];
+
 	int Record_count = 0;
-	int Buf_count=0;
-	while(Record_count<10)
+	std::vector<Sensor_Meas_Raw_data> someRec;
+        int Buffer_size=Buf_Length;
+        int Buffer_count=1;
+
+        while(Record_count<1000)
 	{
-		usleep(10000);
-		if(Buf_count > 9)
-		{	
-			printf("Buff Count: -------------------------------------------------------%d\n",Buf_count);
-			for(int i=0; i<=Buf_count; i++)
-			{
-				printf("ACC_X: %6d\n", Buf_Sensor_data[i].Acc_x_Raw);        
-				printf("ACC_Y: %6d\n", Buf_Sensor_data[i].Acc_y_Raw);        
-				printf("ACC_Z: %6d\n", Buf_Sensor_data[i].Acc_z_Raw);        
-				printf("GYR_X: %6d\n", Buf_Sensor_data[i].Gyro_x_Raw);	
-				printf("GYR_Y: %6d\n", Buf_Sensor_data[i].Gyro_y_Raw);        
-				printf("GYR_Z: %6d\n", Buf_Sensor_data[i].Gyro_z_Raw);        
-				printf("MAG_X: %6d\n", Buf_Sensor_data[i].Mag_x_Raw);        
-				printf("MAG_Y: %6d\n", Buf_Sensor_data[i].Mag_y_Raw);        
-				printf("MAG_Z: %6d\n", Buf_Sensor_data[i].Mag_z_Raw);       
-				printf("Time Stamp: %lu\n",Buf_Sensor_data[i].Timestamp);
-			}
-			Buf_count=0;
-			Buf_Sensor_data[Buf_count]=Get_RawData(i2c);
-			Buf_count++;
-			Record_count++;
-		}
-		else
+                Sensor_Meas_Raw_data Sensor_Meas_Raw_data1 = Get_RawData(i2c);
+
+		someRec.push_back(Sensor_Meas_Raw_data1);
+
+
+                if (Buffer_count>=Buffer_size )
 		{
-			printf("Buff Count: -------------------------------------------------------%d\n",Buf_count);
-			Buf_Sensor_data[Buf_count]=Get_RawData(i2c);
-			Buf_count++;
-			Record_count++;
-		}
-	}
-	// int Record_count=0;
-		// while(Record_count<1000)
-	 // {
-			// struct Sensor_Meas_Raw_data Buf_Sensor_data;
-			// Buf_Sensor_data=Get_RawData();
-			// printf("ACC_X: %6d\n", Buf_Sensor_data.Acc_x_Raw);        
-				// printf("ACC_Y: %6d\n", Buf_Sensor_data.Acc_y_Raw);        
-				// printf("ACC_Z: %6d\n", Buf_Sensor_data.Acc_z_Raw);        
-				// printf("GYR_X: %6d\n", Buf_Sensor_data.Gyro_x_Raw);
-				// printf("GYR_Y: %6d\n", Buf_Sensor_data.Gyro_y_Raw);        
-				// printf("GYR_Z: %6d\n", Buf_Sensor_data.Gyro_z_Raw);        
-				// printf("MAG_X: %6d\n", Buf_Sensor_data.Mag_x_Raw);        
-				// printf("MAG_Y: %6d\n", Buf_Sensor_data.Mag_y_Raw);        
-				// printf("MAG_Z: %6d\n", Buf_Sensor_data.Mag_z_Raw);       
-				// printf("Time Stamp: %ld\n",Buf_Sensor_data.Timestamp);
-				// Record_count++;
-	// }
-        
+                        std::cout << "-------------------------------- " <<Record_count+1<< std::endl;
+                        for(unsigned int i =0; i < someRec.size(); i++)
+			{
+                                       // std::cout << "-------------------------------- " <<Buffer_count<< std::endl;
+					std::cout << "	  ACC_X: \t" << someRec.at(i).Acc_x_Raw << std::endl;
+					std::cout << "    ACC_Y: \t" << someRec.at(i).Acc_y_Raw << std::endl;
+					std::cout << "    ACC_Z: \t" << someRec.at(i).Acc_z_Raw << std::endl;
+					std::cout << "    GYR_X: \t" << someRec.at(i).Gyro_x_Raw << std::endl;
+					std::cout << "    GYR_Y: \t" << someRec.at(i).Gyro_y_Raw << std::endl;
+					std::cout << "    GYR_Z: \t" << someRec.at(i).Gyro_z_Raw << std::endl;
+					std::cout << "    Mag_X: \t" << someRec.at(i).Mag_x_Raw << std::endl; 
+					std::cout << "    Mag_Y: \t" << someRec.at(i).Mag_y_Raw << std::endl; 
+					std::cout << "    Mag_z: \t" << someRec.at(i).Mag_z_Raw << std::endl; 
+					std::cout << "    Time Stamp: \t" << static_cast<unsigned int>(someRec.at(i).Timestamp) << std::endl;
+			}
+                        Buffer_count=0;
+                        someRec.clear();
+                }
+                //std::cout << "---------------Recording----------------- " <<Buffer_count<< std::endl;
+		Record_count++;
+                Buffer_count++;
+        }
 	
 }
 
@@ -219,22 +206,6 @@ int main( int argc , const char* argv[]){
 	
 	mraa_i2c_context i2c = MPU_Init();
 	MPU_Sleep(Measur_wait_time_us);
-	//struct Sensor_Meas_Raw_data Buf_Sensor_data[Buf_Length];
-	Print(i2c);
-	
-	return 0;
-
-	
-	
+	Print(i2c);	
+        return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
