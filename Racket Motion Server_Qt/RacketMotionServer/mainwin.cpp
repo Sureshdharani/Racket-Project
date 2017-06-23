@@ -50,16 +50,16 @@ void MainWin::connectSignals()
     bool isCon = false;
     isCon = connect(_sensServer, SIGNAL(sendState(const QString)),
                     this, SLOT(showState(const QString)));
-    Q_ASSERT(!isCon);
+    // Q_ASSERT(!isCon);
 
     isCon = connect(_sensServer, SIGNAL(sendSensData(const SensData)),
                     this, SLOT(rcvSensData(const SensData)));
-    Q_ASSERT(!isCon);
+    // Q_ASSERT(!isCon);
 
     // Line edit objects
     isCon = connect(ui->localPortLnEd, SIGNAL(editingFinished()),
                     this, SLOT(portChanged()));
-    Q_ASSERT(!isCon);
+    // Q_ASSERT(!isCon);
 }
 
 //-----------------------------------------------------------------------------
@@ -191,7 +191,7 @@ void MainWin::_appendToPlot(QCustomPlot *plot, const double key,
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::_updatePlots(SensData sensData, const int scrollRange)
+void MainWin::_updatePlots(const SensData sensData, const int scrollRange)
 {
     const double t = sensData.back().timeStamp;
     const SensDataPacket packet = sensData.back();

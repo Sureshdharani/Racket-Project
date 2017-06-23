@@ -43,7 +43,8 @@ struct SensDataPacket {
 };
 
 // Sensor data FIFO:
-typedef std::deque<SensDataPacket> SensData;
+typedef std::deque<SensDataPacket> SensData;     // raw sensor data
+typedef std::deque<SensDataPacket> FitSensData;  // fitted sensor data
 
 class RacketSensorServer : public QObject
 {
@@ -68,11 +69,20 @@ signals:
     void sendSensData(const SensData sensData);
 
 private:  // functions
+    /* Fits the sensor data and returns new filled array
+     *  Input:
+     *      data - sensor data
+     *      N - window size to fit
+     *  Return:
+     *      Fitted sensor data
+     */
+    FitSensData _fitSensData(const SensData data, const unsigned int N = 100);
 
 private:  // variables
 
     QUdpSocket* _socket;
-    SensData _sensData;
+    SensData _sensData;    // raw sensor data
+    FitSensData _fitData;  // fitted sensor data
 };
 
 #endif // RACKETSENSORCLIENT_H

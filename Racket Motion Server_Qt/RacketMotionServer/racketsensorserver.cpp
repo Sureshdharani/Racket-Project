@@ -9,7 +9,8 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     port = Port;
     _socket->bind(port);
 
-    _sensData = std::deque<SensDataPacket>(NUM_PACKETS);
+    _sensData = SensData(NUM_PACKETS);
+    _fitData = FitSensData();
 
     connect(_socket, SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
 }
@@ -54,6 +55,10 @@ void RacketSensorServer::readPendingDatagrams()
 
     // Append new element
     _sensData.push_back(processInputPacket(data, sensDataPacketPrev));
+
+    // Fit sensor data:
+   _fitSensData(_sensData, 30);
+
     emit(sendSensData(_sensData));
 
     /*
@@ -76,6 +81,24 @@ void RacketSensorServer::readPendingDatagrams()
     qDebug() << "sensDataPacket3: " << _sensDataPacket.toString();
     qDebug() << "--------------------------------";
     */
+}
+
+//-----------------------------------------------------------------------------
+FitSensData RacketSensorServer::_fitSensData(const SensData data,
+                                             const unsigned int N)
+{
+    FitSensData fitted = FitSensData(N);
+
+    if (data.size() < N)
+        return static_cast<FitSensData>(data);
+
+    // Cut last N data points from data:
+    unsigned int j = 0;
+    for(unsigned int i = data.size()-1; i >= N; i--) {
+        fitted.at(j) = data.at(i);
+        j++;
+    }
+    return fitted;
 }
 
 //-----------------------------------------------------------------------------

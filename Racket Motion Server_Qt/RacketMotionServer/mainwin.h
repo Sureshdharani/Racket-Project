@@ -52,7 +52,7 @@ private:  // functions
                     const QString xLabel = "x", const QString yLabel = "y");
     void _appendToPlot(QCustomPlot *plot, const double key,
                        const double value, const int scrollRange = 10);
-    void _updatePlots(SensData sensData, const int scrollRange = 10);
+    void _updatePlots(const SensData sensData, const int scrollRange = 10);
 
 private:  // variables
     Ui::MainWin *ui;
