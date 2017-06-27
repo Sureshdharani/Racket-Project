@@ -62,12 +62,22 @@ void MainWin::connectSignals()
     isCon = connect(ui->localPortLnEd, SIGNAL(editingFinished()),
                     this, SLOT(portChanged()));
     // Q_ASSERT(!isCon);
+
+    isCon = connect(ui->fitWinLenLnEd, SIGNAL(editingFinished()),
+                            this, SLOT(fitWinLenChnged()));
+    // Q_ASSERT(!isCon);
 }
 
 //-----------------------------------------------------------------------------
 void MainWin::portChanged()
 {
     emit(_sensServer->setListenIPPort(ui->localPortLnEd->text()));
+}
+
+//-----------------------------------------------------------------------------
+void MainWin::fitWinLenChnged()
+{
+    _sensServer->fitWinLen = ui->fitWinLenLnEd->text().toInt();
 }
 
 //-----------------------------------------------------------------------------
@@ -132,6 +142,7 @@ void MainWin::setUpGUI()
     ui->localPortLnEd->setValidator(new QIntValidator(1, 65536, this));
     ui->pltBufSzLnEd->setValidator(new QIntValidator(5, 1000, this));
     ui->pltUpTimeMSLnEd->setValidator(new QIntValidator(1, 1000, this));
+    ui->fitWinLenLnEd->setValidator(new QIntValidator(10, 1000, this));
 }
 
 
@@ -183,8 +194,9 @@ void MainWin::_setUpPlot(QCustomPlot *plot, const QString timeFormat,
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::_appendToPlot(QCustomPlot *plot, const double key,
-                            const double value, std::vector<double> fit,
+void MainWin::_appendToPlot(QCustomPlot *plot,
+                            const double key, const double value,
+                            std::vector<double> t, std::vector<double> fit,
                             const int scrollRange)
 {
   // add data to lines:
@@ -194,14 +206,9 @@ void MainWin::_appendToPlot(QCustomPlot *plot, const double key,
   plot->graph(0)->rescaleValueAxis(true);
 
   // append fitted data:
-  // get last fit.size() keys from graph(0):
-
   plot->graph(1)->data()->clear();
-  unsigned int j = plot->graph(0)->data()->size();
-  for (unsigned int i = 0; i < fit.size(); i++) {
-      plot->graph(1)->addData(plot->graph(0)->data()->at(j)->key, fit.at(i));
-      j--;
-  }
+  for (unsigned int i = 0; i < fit.size(); i++)
+      plot->graph(1)->addData(t.at(i), fit.at(i));
   plot->graph(1)->rescaleValueAxis(true);
 
   // make key axis range scroll with the data:
@@ -217,6 +224,7 @@ void MainWin::_updatePlots(const SensData sensData, const FitSensData fitData,
     const SensDataPacket packet = sensData.back();
 
     // = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
+    std::vector<double> tFitData;
     std::vector<double> accX;
     std::vector<double> accY;
     std::vector<double> accZ;
@@ -241,18 +249,19 @@ void MainWin::_updatePlots(const SensData sensData, const FitSensData fitData,
         magX.push_back(fd.mag.x);
         magY.push_back(fd.mag.y);
         magZ.push_back(fd.mag.z);
+        tFitData.push_back(fd.timeStamp);
     }
     // std::reverse(d.begin(), d.end());
 
-    _appendToPlot(ui->wid11, t, packet.acc.x, accX, scrollRange);
-    _appendToPlot(ui->wid21, t, packet.acc.y, accY, scrollRange);
-    _appendToPlot(ui->wid31, t, packet.acc.z, accZ, scrollRange);
+    _appendToPlot(ui->wid11, t, packet.acc.x, tFitData, accX, scrollRange);
+    _appendToPlot(ui->wid21, t, packet.acc.y, tFitData, accY, scrollRange);
+    _appendToPlot(ui->wid31, t, packet.acc.z, tFitData, accZ, scrollRange);
 
-    _appendToPlot(ui->wid12, t, packet.gyro.x, gyroX, scrollRange);
-    _appendToPlot(ui->wid22, t, packet.gyro.y, gyroY, scrollRange);
-    _appendToPlot(ui->wid32, t, packet.gyro.z, gyroZ, scrollRange);
+    _appendToPlot(ui->wid12, t, packet.gyro.x, tFitData, gyroX, scrollRange);
+    _appendToPlot(ui->wid22, t, packet.gyro.y, tFitData, gyroY, scrollRange);
+    _appendToPlot(ui->wid32, t, packet.gyro.z, tFitData, gyroZ, scrollRange);
 
-    _appendToPlot(ui->wid13, t, packet.mag.x, magX, scrollRange);
-    _appendToPlot(ui->wid23, t, packet.mag.y, magY, scrollRange);
-    _appendToPlot(ui->wid33, t, packet.mag.z, magZ, scrollRange);
+    _appendToPlot(ui->wid13, t, packet.mag.x, tFitData, magX, scrollRange);
+    _appendToPlot(ui->wid23, t, packet.mag.y, tFitData, magY, scrollRange);
+    _appendToPlot(ui->wid33, t, packet.mag.z, tFitData, magZ, scrollRange);
 }

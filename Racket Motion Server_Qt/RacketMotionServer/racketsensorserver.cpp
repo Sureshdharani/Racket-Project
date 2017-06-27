@@ -12,6 +12,8 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     _sensData = SensData(NUM_PACKETS);
     _fitData = FitSensData();
 
+    fitWinLen = 100;
+
     connect(_socket, SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
 }
 
@@ -57,7 +59,7 @@ void RacketSensorServer::readPendingDatagrams()
     _sensData.push_back(processInputPacket(data, sensDataPacketPrev));
 
     // Fit sensor data:
-   _fitData = _fitSensData(_sensData, 100);
+   _fitData = _fitSensData(_sensData, fitWinLen);
 
     emit(sendSensData(_sensData, _fitData));
 

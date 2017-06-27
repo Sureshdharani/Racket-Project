@@ -32,6 +32,7 @@ public slots:
     void showState(const QString);
     void rcvSensData(const SensData sensData, const FitSensData fitData);
     void portChanged();
+    void fitWinLenChnged();
 
 public:
     explicit MainWin(QWidget *parent = 0);
@@ -47,8 +48,8 @@ private Q_SLOTS:
 private:  // functions
     void _setUpPlot(QCustomPlot *plot, const QString timeFormat = "%m:%s",
                     const QString xLabel = "x", const QString yLabel = "y");
-    void _appendToPlot(QCustomPlot *plot, const double key,
-                       const double value, std::vector<double> fit,
+    void _appendToPlot(QCustomPlot *plot, const double key, const double value,
+                       std::vector<double> t, std::vector<double> fit,
                        const int scrollRange = 10);
     void _updatePlots(const SensData sensData, const FitSensData fitData,
                       const int scrollRange = 10);

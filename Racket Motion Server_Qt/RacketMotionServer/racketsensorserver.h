@@ -58,6 +58,7 @@ public:  // functions
 
 public:  // variables
     quint16 port;
+    unsigned int fitWinLen;  // fit window length
 
 public slots:
     void setListenIPPort(const quint16 Port);
