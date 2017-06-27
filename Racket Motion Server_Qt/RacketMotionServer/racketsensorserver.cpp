@@ -94,6 +94,8 @@ FitSensData RacketSensorServer::_fitSensData(const SensData data,
 
     // Create containers for fit:
     FitSensData fitted = FitSensData(N);
+
+    std::vector<double> time(N);
     std::vector<double> accX(N);
     std::vector<double> accY(N);
     std::vector<double> accZ(N);
@@ -111,6 +113,8 @@ FitSensData RacketSensorServer::_fitSensData(const SensData data,
     for(unsigned int i = data.size()-1; i > data.size()-1-N; i--) {
         fitted.at(j) = data.at(i);
 
+        time.at(j) = data.at(i).timeStamp;
+
         accX.at(j) = data.at(i).acc.x;
         accY.at(j) = data.at(i).acc.y;
         accZ.at(j) = data.at(i).acc.z;
@@ -126,6 +130,7 @@ FitSensData RacketSensorServer::_fitSensData(const SensData data,
     }
 
     // Fit the data:
+    MathFit::fitexp(accX);
 
     // Pack fitted data to fitted array:
     return fitted;

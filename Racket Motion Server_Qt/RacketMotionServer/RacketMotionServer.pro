@@ -28,7 +28,8 @@ SOURCES += \
         main.cpp \
         mainwin.cpp \
     qcustomplot/qcustomplot.cpp \
-    racketsensorserver.cpp
+    racketsensorserver.cpp \
+    fitfunctions.cpp
 
 HEADERS += \
         mainwin.h \
