@@ -111,9 +111,23 @@ FitSensData RacketSensorServer::_fitSensData(const SensData data,
     for(unsigned int i = data.size()-1; i > data.size()-1-N; i--) {
         fitted.at(j) = data.at(i);
 
-        // accX.at(j) = data.at(i).acc.x;
+        accX.at(j) = data.at(i).acc.x;
+        accY.at(j) = data.at(i).acc.y;
+        accZ.at(j) = data.at(i).acc.z;
+
+        gyroX.at(j) = data.at(i).gyro.x;
+        gyroY.at(j) = data.at(i).gyro.y;
+        gyroZ.at(j) = data.at(i).gyro.z;
+
+        magX.at(j) = data.at(i).mag.x;
+        magY.at(j) = data.at(i).mag.y;
+        magZ.at(j) = data.at(i).mag.z;
         j++;
     }
+
+    // Fit the data:
+
+    // Pack fitted data to fitted array:
     return fitted;
 }
 
