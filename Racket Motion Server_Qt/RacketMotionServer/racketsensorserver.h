@@ -66,7 +66,7 @@ public slots:
 
 signals:
     void sendState(const QString errorDescr);
-    void sendSensData(const SensData sensData);
+    void sendSensData(const SensData sensData, const FitSensData fitData);
 
 private:  // functions
     /* Fits the sensor data and returns new filled array

@@ -57,9 +57,9 @@ void RacketSensorServer::readPendingDatagrams()
     _sensData.push_back(processInputPacket(data, sensDataPacketPrev));
 
     // Fit sensor data:
-   _fitSensData(_sensData, 30);
+   _fitData = _fitSensData(_sensData, 100);
 
-    emit(sendSensData(_sensData));
+    emit(sendSensData(_sensData, _fitData));
 
     /*
     const QString str1 = "90594.75079, 3,  -0.059,  0.098,  9.826, 4,  -0.000,  0.001,  0.001, 5,  16.191, 12.642,-34.497";
@@ -87,15 +87,29 @@ void RacketSensorServer::readPendingDatagrams()
 FitSensData RacketSensorServer::_fitSensData(const SensData data,
                                              const unsigned int N)
 {
-    FitSensData fitted = FitSensData(N);
-
     if (data.size() < N)
         return static_cast<FitSensData>(data);
 
+    // Create containers for fit:
+    FitSensData fitted = FitSensData(N);
+    std::vector<double> accX(N);
+    std::vector<double> accY(N);
+    std::vector<double> accZ(N);
+
+    std::vector<double> gyroX(N);
+    std::vector<double> gyroY(N);
+    std::vector<double> gyroZ(N);
+
+    std::vector<double> magX(N);
+    std::vector<double> magY(N);
+    std::vector<double> magZ(N);
+
     // Cut last N data points from data:
     unsigned int j = 0;
-    for(unsigned int i = data.size()-1; i >= N; i--) {
+    for(unsigned int i = data.size()-1; i > data.size()-1-N; i--) {
         fitted.at(j) = data.at(i);
+
+        // accX.at(j) = data.at(i).acc.x;
         j++;
     }
     return fitted;
