@@ -53,7 +53,9 @@ void MathFit::fitexp(const std::vector<double> data)
     ret = dlevmar_der(expfunc, jacexpfunc,
                       p, x, m, n, 1000, opts, info,
                       NULL, NULL, NULL); // with analytic Jacobian
-    // ret = dlevmar_dif(expfunc,
-    //                   p, x, m, n, 1000, opts, info,
-    //                   NULL, NULL, NULL); // without Jacobian
+    /*
+    ret = dlevmar_dif(expfunc,
+                      p, x, m, n, 1000, opts, info,
+                      NULL, NULL, NULL); // without Jacobian
+    */
 }

@@ -29,14 +29,24 @@ SOURCES += \
         mainwin.cpp \
     qcustomplot/qcustomplot.cpp \
     racketsensorserver.cpp \
-    fitfunctions.cpp
+    fitfunctions.cpp \
+    qcustomplot/qcustomplot.cpp \
+    fitfunctions.cpp \
+    main.cpp \
+    mainwin.cpp \
+    racketsensorserver.cpp \
 
 HEADERS += \
         mainwin.h \
     qcustomplot/qcustomplot.h \
     racketsensorserver.h \
-    levmar-2.6/levmar.h \
-    fitfunctions.h
+    fitfunctions.h \
+    qcustomplot/qcustomplot.h \
+    fitfunctions.h \
+    mainwin.h \
+    racketsensorserver.h
 
 FORMS += \
         mainwin.ui
+
+LIBS += -framework Accelerate
