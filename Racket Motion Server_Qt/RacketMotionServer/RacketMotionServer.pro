@@ -33,7 +33,9 @@ SOURCES += \
 HEADERS += \
         mainwin.h \
     qcustomplot/qcustomplot.h \
-    racketsensorserver.h
+    racketsensorserver.h \
+    levmar-2.6/levmar.h \
+    fitfunctions.h
 
 FORMS += \
         mainwin.ui

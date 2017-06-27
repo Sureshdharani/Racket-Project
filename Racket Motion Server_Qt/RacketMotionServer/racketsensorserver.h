@@ -3,6 +3,7 @@
 
 #include <QUdpSocket>
 #include <deque>
+#include <fitfunctions.h>
 
 #define NUM_PACKETS 10000  // number of packets from sensro to safe
 
