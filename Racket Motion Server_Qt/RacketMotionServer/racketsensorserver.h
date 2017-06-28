@@ -3,6 +3,7 @@
 
 #include <QUdpSocket>
 #include <deque>
+#include <fitfunctions.h>
 
 #define NUM_PACKETS 10000  // number of packets from sensro to safe
 
@@ -43,7 +44,8 @@ struct SensDataPacket {
 };
 
 // Sensor data FIFO:
-typedef std::deque<SensDataPacket> SensData;
+typedef std::deque<SensDataPacket> SensData;     // raw sensor data
+typedef std::deque<SensDataPacket> FitSensData;  // fitted sensor data
 
 class RacketSensorServer : public QObject
 {
@@ -57,6 +59,7 @@ public:  // functions
 
 public:  // variables
     quint16 port;
+    unsigned int fitWinLen;  // fit window length
 
 public slots:
     void setListenIPPort(const quint16 Port);
@@ -65,14 +68,23 @@ public slots:
 
 signals:
     void sendState(const QString errorDescr);
-    void sendSensData(const SensData sensData);
+    void sendSensData(const SensData sensData, const FitSensData fitData);
 
 private:  // functions
+    /* Fits the sensor data and returns new filled array
+     *  Input:
+     *      data - sensor data
+     *      N - window size to fit
+     *  Return:
+     *      Fitted sensor data
+     */
+    FitSensData _fitSensData(const SensData data, const unsigned int N = 100);
 
 private:  // variables
 
     QUdpSocket* _socket;
-    SensData _sensData;
+    SensData _sensData;    // raw sensor data
+    FitSensData _fitData;  // fitted sensor data
 };
 
 #endif // RACKETSENSORCLIENT_H

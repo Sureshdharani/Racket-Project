@@ -27,13 +27,15 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         mainwin.cpp \
-    qcustomplot/qcustomplot.cpp \
-    racketsensorserver.cpp
+        racketsensorserver.cpp \
+        fitfunctions.cpp \
+        qcustomplot/qcustomplot.cpp \
 
 HEADERS += \
         mainwin.h \
-    qcustomplot/qcustomplot.h \
-    racketsensorserver.h
+        racketsensorserver.h \
+        fitfunctions.h \
+        qcustomplot/qcustomplot.h \
 
 FORMS += \
         mainwin.ui

@@ -9,7 +9,10 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     port = Port;
     _socket->bind(port);
 
-    _sensData = std::deque<SensDataPacket>(NUM_PACKETS);
+    _sensData = SensData(NUM_PACKETS);
+    _fitData = FitSensData();
+
+    fitWinLen = 100;
 
     connect(_socket, SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
 }
@@ -54,7 +57,11 @@ void RacketSensorServer::readPendingDatagrams()
 
     // Append new element
     _sensData.push_back(processInputPacket(data, sensDataPacketPrev));
-    emit(sendSensData(_sensData));
+
+    // Fit sensor data:
+   _fitData = _fitSensData(_sensData, fitWinLen);
+
+    emit(sendSensData(_sensData, _fitData));
 
     /*
     const QString str1 = "90594.75079, 3,  -0.059,  0.098,  9.826, 4,  -0.000,  0.001,  0.001, 5,  16.191, 12.642,-34.497";
@@ -76,6 +83,57 @@ void RacketSensorServer::readPendingDatagrams()
     qDebug() << "sensDataPacket3: " << _sensDataPacket.toString();
     qDebug() << "--------------------------------";
     */
+}
+
+//-----------------------------------------------------------------------------
+FitSensData RacketSensorServer::_fitSensData(const SensData data,
+                                             const unsigned int N)
+{
+    if (data.size() < N)
+        return static_cast<FitSensData>(data);
+
+    // Create containers for fit:
+    FitSensData fitted = FitSensData(N);
+
+    std::vector<double> time(N);
+    std::vector<double> accX(N);
+    std::vector<double> accY(N);
+    std::vector<double> accZ(N);
+
+    std::vector<double> gyroX(N);
+    std::vector<double> gyroY(N);
+    std::vector<double> gyroZ(N);
+
+    std::vector<double> magX(N);
+    std::vector<double> magY(N);
+    std::vector<double> magZ(N);
+
+    // Cut last N data points from data:
+    unsigned int j = 0;
+    for(unsigned int i = data.size()-1; i > data.size()-1-N; i--) {
+        fitted.at(j) = data.at(i);
+
+        time.at(j) = data.at(i).timeStamp;
+
+        accX.at(j) = data.at(i).acc.x;
+        accY.at(j) = data.at(i).acc.y;
+        accZ.at(j) = data.at(i).acc.z;
+
+        gyroX.at(j) = data.at(i).gyro.x;
+        gyroY.at(j) = data.at(i).gyro.y;
+        gyroZ.at(j) = data.at(i).gyro.z;
+
+        magX.at(j) = data.at(i).mag.x;
+        magY.at(j) = data.at(i).mag.y;
+        magZ.at(j) = data.at(i).mag.z;
+        j++;
+    }
+
+    // Fit the data:
+    MathFit::fitexp(accX);
+
+    // Pack fitted data to fitted array:
+    return fitted;
 }
 
 //-----------------------------------------------------------------------------
