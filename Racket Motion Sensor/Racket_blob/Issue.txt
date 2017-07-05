@@ -1,0 +1,1 @@
+After sending via UDP MPU9250 connection get terminated
