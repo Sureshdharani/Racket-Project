@@ -131,10 +131,22 @@ FitSensData RacketSensorServer::_fitSensData(const SensData data,
 
     // Fit the data:
     accX = MathFit::fitNormal(time, accX);
+    accY = MathFit::fitNormal(time, accY);
+    accZ = MathFit::fitNormal(time, accZ);
+
+    gyroX = MathFit::fitNormal(time, gyroX);
+    gyroY = MathFit::fitNormal(time, gyroY);
+    gyroZ = MathFit::fitNormal(time, gyroZ);
 
     // Pack fitted data to fitted array:
     for(unsigned int i = 0; i < accX.size(); i++) {
         fitted.at(i).acc.x = accX.at(i);
+        fitted.at(i).acc.y = accY.at(i);
+        fitted.at(i).acc.z = accZ.at(i);
+
+        fitted.at(i).gyro.x = gyroX.at(i);
+        fitted.at(i).gyro.y = gyroY.at(i);
+        fitted.at(i).gyro.z = gyroZ.at(i);
     }
 
     return fitted;
