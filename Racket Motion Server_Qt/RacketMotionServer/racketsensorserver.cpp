@@ -59,7 +59,7 @@ void RacketSensorServer::readPendingDatagrams()
     _sensData.push_back(processInputPacket(data, sensDataPacketPrev));
 
     // Fit sensor data:
-   _fitData = _fitSensData(_sensData, fitWinLen);
+    _fitData = _fitSensData(_sensData, fitWinLen);
 
     emit(sendSensData(_sensData, _fitData));
 
@@ -130,9 +130,13 @@ FitSensData RacketSensorServer::_fitSensData(const SensData data,
     }
 
     // Fit the data:
-    MathFit::fitexp(accX);
+    accX = MathFit::fitNormal(time, accX);
 
     // Pack fitted data to fitted array:
+    for(unsigned int i = 0; i < accX.size(); i++) {
+        fitted.at(i).acc.x = accX.at(i);
+    }
+
     return fitted;
 }
 

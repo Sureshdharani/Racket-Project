@@ -2,35 +2,35 @@
 
 
 //-----------------------------------------------------------------------------
-double MathFit::model (const input_vector& input,
-                       const parameter_vector& params)
+double MathFit::modelNormal (const double &x,
+                             const normPar &p)
 {
-    const double p0 = params(0);
-    const double p1 = params(1);
-    const double p2 = params(2);
-
-    const double i0 = input(0);
-    const double i1 = input(1);
-
-    const double temp = p0*i0 + p1*i1 + p2;
-
-    return temp*temp;
+    // Normal distribution: b + a * exp(- (x - m)^2 / (2 * s^2))
+    // p(0) = b
+    // p(1) = a
+    // p(2) = m
+    // p(3) = s
+    const double ret = p(0) + (p(1) * std::exp((-1.0 *
+                                                std::pow((x - p(2)), 2))
+                                               / (2 * std::pow(p(3), 2))));
+    return ret;
 }
 
 //-----------------------------------------------------------------------------
-double MathFit::residual (const std::pair<input_vector, double> &data,
-                          const parameter_vector &params)
+double MathFit::residual (const std::pair<double, double> &data,
+                          const normPar &p)
 {
-    return model(data.first, params) - data.second;
+    // return modelNormal(data.first, params) - data.second;
+    return modelNormal(data.first, p) - data.second;
 }
 
 //-----------------------------------------------------------------------------
-parameter_vector MathFit::residual_derivative (
-        const std::pair<input_vector, double> &data,
-        const parameter_vector &params)
+normPar MathFit::residual_derivative (const std::pair<double, double> &data,
+                                          const normPar &p)
 {
-    parameter_vector der;
+    normPar d;
 
+    /*
     const double p0 = params(0);
     const double p1 = params(1);
     const double p2 = params(2);
@@ -43,72 +43,93 @@ parameter_vector MathFit::residual_derivative (
     der(0) = i0*2*temp;
     der(1) = i1*2*temp;
     der(2) = 2*temp;
+    */
 
-    return der;
+    // Derivative function of normal distribution with respect to parameters:
+    // Normal distribution: b + a * exp(- (x - m)^2 / (2 * s^2))
+    // p(0) = b
+    // p(1) = a
+    // p(2) = m
+    // p(3) = s
+
+    const double x = data.first;
+    const double exp = std::exp((-1.0 * std::pow((x - p(2)), 2))
+                                / (2 * std::pow(p(3), 2)));
+    // Derivative with respect to bias - b:
+    d(0) = 1.0;
+
+    // Derivative with respect to amplitude - a:
+    d(1) = exp;
+
+    // Derivative with respect to mean - m:
+    d(2) = p(1) * ((x - p(2)) / std::pow(p(3), 2)) * exp;
+
+    // Derivative with respect to standart deviation - s:
+    d(3) = p(1) * (std::pow((x - p(2)), 2) / std::pow(p(3), 3)) * exp;
+
+    return d;
 }
 
 //-----------------------------------------------------------------------------
-void MathFit::fitexp(const std::vector<double> data)
+std::vector<double> MathFit::fitNormal(const std::vector<double> dataX,
+                                       const std::vector<double> dataY)
 {
     try {
         // randomly pick a set of parameters to use in this example
-        const parameter_vector params = 10*randm(3,1);
-        // cout << "params: " << trans(params) << endl;
+        // const parameter_vector params = 10*randm(3,1);
+
+
+        // Crreate data according to model:
+        normPar p;
+        p(0) = *std::min_element(dataY.begin(), dataY.end());
+        p(1) = *std::max_element(dataY.begin(), dataY.end()) - p(0);
+        p(2) = dataX.at(dataX.size()/2);
+        p(3) = 0.1;
 
 
         // Now let's generate a bunch of input/output pairs according to our model.
+        /*
         std::vector<std::pair<input_vector, double> > data_samples;
         input_vector input;
-        for (int i = 0; i < 1000; ++i)
+        for (int i = 0; i < dataX.size(); ++i)
         {
-            input = 10*randm(2,1);
-            const double output = model(input, params);
+            input = 10 * randm(2,1);
+            const double output = modelNormal(input, params);
 
             // save the pair
             data_samples.push_back(std::make_pair(input, output));
         }
+        */
 
-        // Before we do anything, let's make sure that our derivative function defined above matches
-        // the approximate derivative computed using central differences (via derivative()).
-        // If this value is big then it means we probably typed the derivative function incorrectly.
-        // cout << "derivative error: " << length(residual_derivative(data_samples[0], params) -
-        //                                        derivative(residual)(data_samples[0], params) ) << endl;
+        // create data samples:
+        std::vector<std::pair<double, double> > data_samples;
+        for (int i = 0; i < dataX.size(); ++i)
+            data_samples.push_back(std::make_pair(dataX.at(i), dataY.at(i)));
 
-
-
-
-
-        // Now let's use the solve_least_squares_lm() routine to figure out what the
-        // parameters are based on just the data_samples.
-        parameter_vector x;
-        x = 1;
-
-        // cout << "Use Levenberg-Marquardt" << endl;
         // Use the Levenberg-Marquardt method to determine the parameters which
         // minimize the sum of all squared residuals.
-        solve_least_squares_lm(objective_delta_stop_strategy(1e-7).be_verbose(),
+        solve_least_squares_lm(objective_delta_stop_strategy(1e-7),
                                residual,
                                residual_derivative,
                                data_samples,
-                               x);
-
-        // Now x contains the solution.  If everything worked it will be equal to params.
-        // cout << "inferred parameters: "<< trans(x) << endl;
-        // cout << "solution error:      "<< length(x - params) << endl;
-        // cout << endl;
+                               p);
 
 
+        // return fitted data points:
+        std::vector<double> out;
+        for (unsigned int i = 0; i < dataX.size(); i++)
+            out.push_back(modelNormal(dataX.at(i), p));
+        return out;
 
-
-        x = 1;
+        // x = 1;
         // cout << "Use Levenberg-Marquardt, approximate derivatives" << endl;
         // If we didn't create the residual_derivative function then we could
         // have used this method which numerically approximates the derivatives for you.
-        solve_least_squares_lm(objective_delta_stop_strategy(1e-7).be_verbose(),
-                               residual,
-                               derivative(residual),
-                               data_samples,
-                               x);
+        // solve_least_squares_lm(objective_delta_stop_strategy(1e-7),
+        //                       residual,
+        //                       derivative(residual),
+        //                       data_samples,
+        //                       x);
 
         // Now x contains the solution.  If everything worked it will be equal to params.
         // cout << "inferred parameters: "<< trans(x) << endl;
@@ -118,16 +139,16 @@ void MathFit::fitexp(const std::vector<double> data)
 
 
 
-        x = 1;
+        // x = 1;
         // cout << "Use Levenberg-Marquardt/quasi-newton hybrid" << endl;
         // This version of the solver uses a method which is appropriate for problems
         // where the residuals don't go to zero at the solution.  So in these cases
         // it may provide a better answer.
-        solve_least_squares(objective_delta_stop_strategy(1e-7).be_verbose(),
-                            residual,
-                            residual_derivative,
-                            data_samples,
-                            x);
+        // solve_least_squares(objective_delta_stop_strategy(1e-7),
+        //                    residual,
+        //                    residual_derivative,
+        //                    data_samples,
+        //                    x);
 
         // Now x contains the solution.  If everything worked it will be equal to params.
         // cout << "inferred parameters: "<< trans(x) << endl;
