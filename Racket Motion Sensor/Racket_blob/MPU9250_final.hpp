@@ -426,7 +426,7 @@ THE SOFTWARE.
 #define MPU9250_DMP_MEMORY_CHUNK_SIZE   16
 
 void MPU9250_Setup();
-void MPU9250_Loop();
+//void MPU9250_Loop();
 
 void sig_handler(int signum);
 void MPU9250_GPIO_Init();
