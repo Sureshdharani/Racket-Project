@@ -9,6 +9,8 @@
 #include <array>
 #include <vector>
 #include <chrono>
+#include <ctime>
+#include <ratio>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -26,8 +28,19 @@
 //#define EULER_ANGLES
 
 #define Measur_wait_time_us 2000
-#define Buf_Length 1000
-#define UDP_Buf_Len 10000
+#define Buf_Length_1 50
+#define UDP_Buf_Len 300
+#define HostIP "192.168.178.95"
+//#define HostIP "10.126.131.138"
+//#define HostIP "10.126.128.159"
+#define PortNO 8888
+//#define PortNO 5554
+
+#define MPU_Addr 0x69
+#define I2C_Bus_no 1
+
+
+
 
 using namespace std;
 MPU9250 mpu;
@@ -59,6 +72,12 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
 
 struct Motion_param
 {
+	int16_t Acc_x_Raw = 0;
+	int16_t Acc_y_Raw = 0;
+	int16_t Acc_z_Raw = 0;
+	int16_t Gyro_x_Raw = 0;
+	int16_t Gyro_y_Raw = 0;
+	int16_t Gyro_z_Raw = 0;
 	float w = 0;
 	float x = 0;
 	float y = 0;
@@ -125,12 +144,27 @@ Motion_param MPU9250_Loop()
     #ifdef QUATERNION
     	//Display quaternion values in easy matrix form: w x y z
         mpu.dmpGetQuaternion(&q, fifoBuffer);
+		int16_t Acc_x_Raw = 0;
+		int16_t Acc_y_Raw = 0;
+		int16_t Acc_z_Raw = 0;
+		int16_t Gyro_x_Raw =0;
+		int16_t Gyro_y_Raw =0;
+		int16_t Gyro_z_Raw =0;
+		
+		mpu.getAcceleration(&Acc_x_Raw,&Acc_y_Raw,&Acc_z_Raw);
+		mp.Acc_x_Raw  = Acc_x_Raw;// / 16384.0;
+		mp.Acc_y_Raw  = Acc_y_Raw;// / 16384.0;
+		mp.Acc_z_Raw  = Acc_z_Raw;// / 16384.0;
+		mpu.getRotation(&Gyro_x_Raw,&Gyro_y_Raw,&Gyro_z_Raw);
+		mp.Gyro_x_Raw = Gyro_x_Raw ;
+		mp.Gyro_y_Raw = Gyro_y_Raw ;
+		mp.Gyro_z_Raw = Gyro_z_Raw ;
         // std::cout << Ansi_Colour << "[ SEN" << i << " ]" << ANSI_COLOUR_RESET << ".."<<fifoCount;
         // std::cout << "\t";
-        mp.w=q.w;	//std::cout << q.w;//std::cout << "\t";
-		mp.x=q.x;	//std::cout << q.x;//std::cout << "\t";
-        mp.y=q.y;	//std::cout << q.y ;//std::cout << "\t";
-        mp.z=q.z;	//std::cout << q.z << "\n"<< endl;
+        mp.w=q.w;	
+		mp.x=q.x;	
+        mp.y=q.y;	
+        mp.z=q.z;	
 		mp.Timestamp= Timestamp;
 		return mp;
 
@@ -205,15 +239,19 @@ string Send_MsgStr(Motion_param mp)
 {
 	string Send_Message;
 	 #ifdef QUATERNION
-		Send_Message="s@"+to_string(mp.Timestamp)+"@"+to_string(mp.w)+"@"+to_string(mp.x)+"@"+to_string(mp.y)+"@"+to_string(mp.z)+"@;";		
+		Send_Message="s@"+to_string(mp.Timestamp)+"@"+to_string(mp.Acc_x_Raw)+"@"+to_string(mp.Acc_y_Raw)+"@"+to_string(mp.Acc_z_Raw)+"@"+to_string(mp.Gyro_x_Raw)+"@"+to_string(mp.Gyro_y_Raw)+"@"
+						+to_string(mp.Gyro_z_Raw)+"@"+to_string(mp.w)+"@"+to_string(mp.x)+"@"+to_string(mp.y)+"@"+to_string(mp.z)+"@;";		
 	#endif	
 	#ifdef EULER_ANGLES
-		Send_Message="s@"+to_string(mp.Timestamp)+"@"+to_string(mp.x)+"@"+to_string(mp.y)+"@"+to_string(mp.z)+"@;";		
+		Send_Message="s@"+to_string(mp.Timestamp)+"@"+to_string(mp.Acc_x_Raw)+"@"+to_string(mp.Acc_y_Raw)+"@"+to_string(mp.Acc_z_Raw)+"@"+to_string(mp.Gyro_x_Raw)+"@"+to_string(mp.Gyro_y_Raw)+"@"
+						+to_string(mp.Gyro_z_Raw)+"@"+to_string(mp.x)+"@"+to_string(mp.y)+"@"+to_string(mp.z)+"@;";		
 	#endif		
 	return Send_Message;	
 }
+
 void SendviaUDP ( vector<Motion_param> someRec)
 {
+	string Timestamp = (to_string)(Get_TimeSinceEpochMillis());
 	int sock,length, n;
 			struct sockaddr_in server, from;
 			struct hostent *hp;
@@ -225,31 +263,35 @@ void SendviaUDP ( vector<Motion_param> someRec)
 				printf("socket");
 			}
 			server.sin_family=AF_INET;
-			hp=gethostbyname("192.168.178.95");
+			hp=gethostbyname(HostIP);
+			//hp=gethostbyname("192.168.178.95");
 			if (sock<0)
 				printf("Unknown host");
 
 			bcopy((char *)hp->h_addr, (char *)&server.sin_addr,hp->h_length);
-			server.sin_port=htons(8888);
+			server.sin_port=htons(PortNO);
 			length=sizeof(struct sockaddr_in);
-			for(unsigned int i =0; i < someRec.size(); i++)
+		
+		 
+				for(unsigned int i =0; i < Buf_Length_1; i++)
 				{
+						
+
 						bzero(buffer1,UDP_Buf_Len);
+						
 						string msg=Send_MsgStr(someRec.at(i));
 						memcpy(buffer1, msg.c_str(), msg.size() + 1);
-						//n=0;
-						n=sendto(sock,buffer1,UDP_Buf_Len,0,(struct sockaddr *)&server,length);
-						std::cout<<"Message"<<msg<<"\n"<<std::endl;
-						if (n<0)
-							{
-								printf("sendto");
-							}
+						
+					   n=sendto(sock,buffer1,UDP_Buf_Len,0,(struct sockaddr *)&server,length);
+					    //printf(" Message %s\n",msg);
+					   				 
+						//std::cout<<"Message"<<msg<<"\n"<<std::endl;
 				}
-	
+				
 }
+
+
 int main( int argc , const char* argv[]){
-	
-	
 	mraa_init();
 	MPU9250_GPIO_Init();
 	MPU_Sleep(Measur_wait_time_us);
@@ -257,34 +299,36 @@ int main( int argc , const char* argv[]){
 	
 	int Record_count = 0;
 	std::vector<Motion_param> someRec;
-	int Buffer_size=Buf_Length;
+	int Buffer_size=Buf_Length_1;
     int Buffer_count=1;
-	while(Record_count<100000)
+	using namespace std::chrono;
+	
+	
+	while(1)
 	{
 		 
 		Motion_param Mp= MPU9250_Loop();
 		someRec.push_back(Mp);
-		
+	
 		if (Buffer_count>=Buffer_size )
 			{
-				
+				  
+		        high_resolution_clock::time_point t1 = high_resolution_clock::now();
 				SendviaUDP(someRec);
-				MPU9250_Setup();
-				// MPU9250 mpu;
-				// MPU9250_MUX_Select();
-				// mpu.initialize();
-				// if(mpu.testConnection()) { printf("MPU9250 connection successful \n");}else{ printf("MPU9250 connection Failed\n"); return 0;}
-				devStatus = mpu.dmpInitialize();
-				mpu.setDMPEnabled(true);
-				dmpReady = true;
-				packetSize = mpu.dmpGetFIFOPacketSize();
-				Buffer_count=0;
-                someRec.clear();	
 				
+				Buffer_count=0;
+                someRec.clear();
+					high_resolution_clock::time_point t2 = high_resolution_clock::now();
+					duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+						std::cout << "It took me " << time_span.count() << " seconds." << endl;
+						  std::cout << std::endl;
+					
 			}
 			Record_count++;
             Buffer_count++;
+			
 	}
-		
+	
+	
         return 0;
 }
