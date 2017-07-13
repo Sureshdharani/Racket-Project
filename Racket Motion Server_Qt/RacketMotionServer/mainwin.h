@@ -33,6 +33,8 @@ public slots:
     void rcvSensData(const SensData sensData, const FitSensData fitData);
     void portChanged();
     void fitWinLenChnged();
+    void phoneSelected(int);
+    void edissonSelected(int);
 
 public:
     explicit MainWin(QWidget *parent = 0);

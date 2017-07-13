@@ -27,6 +27,12 @@ MainWin::MainWin(QWidget *parent) :
     // Start and run racket sensor client
     _sensServer = new RacketSensorServer(this);
 
+    if (ui->isPhoneChBox->isChecked())
+        _sensServer->isEdisson = false;
+
+    if (ui->isEdissonChBox->isChecked())
+        _sensServer->isEdisson = true;
+
     connectSignals();
 
     // setup a timer that repeatedly calls MainWindow::realtimeDataSlot:
@@ -66,12 +72,38 @@ void MainWin::connectSignals()
     isCon = connect(ui->fitWinLenLnEd, SIGNAL(editingFinished()),
                             this, SLOT(fitWinLenChnged()));
     // Q_ASSERT(!isCon);
+
+    isCon = connect(ui->isPhoneChBox, SIGNAL(stateChanged(int)),
+                            this, SLOT(phoneSelected(int)));
+    // Q_ASSERT(!isCon);
+
+    isCon = connect(ui->isEdissonChBox, SIGNAL(stateChanged(int)),
+                            this, SLOT(edissonSelected(int)));
+    // Q_ASSERT(!isCon);
 }
 
 //-----------------------------------------------------------------------------
 void MainWin::portChanged()
 {
     emit(_sensServer->setListenIPPort(ui->localPortLnEd->text()));
+}
+
+//-----------------------------------------------------------------------------
+void MainWin::edissonSelected(int newState) {
+    if (newState == Qt::Checked) {
+        ui->isPhoneChBox->setCheckState(Qt::Unchecked);
+        ui->isEdissonChBox->setCheckState(Qt::Checked);
+        _sensServer->isEdisson = true;
+    }
+}
+
+//-----------------------------------------------------------------------------
+void MainWin::phoneSelected(int newState) {
+    if (newState == Qt::Checked) {
+        ui->isPhoneChBox->setCheckState(Qt::Checked);
+        ui->isEdissonChBox->setCheckState(Qt::Unchecked);
+        _sensServer->isEdisson = false;
+    }
 }
 
 //-----------------------------------------------------------------------------

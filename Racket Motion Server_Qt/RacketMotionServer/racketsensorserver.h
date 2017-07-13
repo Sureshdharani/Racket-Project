@@ -54,10 +54,21 @@ class RacketSensorServer : public QObject
 public:  // functions
     explicit RacketSensorServer(QObject *parent = 0,
                                 const quint16 Port = 5554);
+
+    // Packet format:
+    // "90594.75079, 3,  -0.059,  0.098,  9.826, 4,  -0.000,  0.001,  0.001, 5,  16.191, 12.642,-34.497"
+    // "92309.37615, 3,  -0.043,  0.033,  9.722, 4,  -0.001, -0.001, -0.001"
+    // "92272.20973, 3,  -1.355, -0.098, 10.935"
     SensDataPacket processInputPacket(const QString packet,
                                       const SensDataPacket prevSensDataPacket);
 
+    // Process packet from edisson:
+    // Packet fromat:
+    // "s@TimeStamp@accX@accY@accZ@gyroX@gyroY@gyroZ@w@x@y@z@;"
+    SensDataPacket processInPacket(const QString data);
+
 public:  // variables
+    bool isEdisson;
     quint16 port;
     unsigned int fitWinLen;  // fit window length
 

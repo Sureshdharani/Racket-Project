@@ -13,6 +13,7 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     _fitData = FitSensData();
 
     fitWinLen = 100;
+    isEdisson = true;
 
     connect(_socket, SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
 }
@@ -36,53 +37,23 @@ void RacketSensorServer::readPendingDatagrams()
     QHostAddress sender;
     quint16 senderPort;
 
-    // qint64 QUdpSocket::readDatagram(char * data, qint64 maxSize,
-    //                 QHostAddress * address = 0, quint16 * port = 0)
-    // Receives a datagram no larger than maxSize bytes and stores it in data.
-    // The sender's host address and port is stored in *address and *port
-    // (unless the pointers are 0).
-
-    // Packet format:
-    // "90594.75079, 3,  -0.059,  0.098,  9.826, 4,  -0.000,  0.001,  0.001, 5,  16.191, 12.642,-34.497"
-    // "92309.37615, 3,  -0.043,  0.033,  9.722, 4,  -0.001, -0.001, -0.001"
-    // "92272.20973, 3,  -1.355, -0.098, 10.935"
-
     _socket->readDatagram(buffer.data(), buffer.size(),
                           &sender, &senderPort);
 
     QString data(buffer);
-    SensDataPacket sensDataPacketPrev = _sensData.empty() ? SensDataPacket() : _sensData.back();
-    if (_sensData.size() >= NUM_PACKETS)  // adopt size if it exceeds array size
-        _sensData.pop_front();  // delete last element
 
     // Append new element
-    _sensData.push_back(processInputPacket(data, sensDataPacketPrev));
+    if (!isEdisson) {  // process packets from app
+        SensDataPacket sensDataPacketPrev = _sensData.empty() ? SensDataPacket() : _sensData.back();
+        _sensData.push_back(processInputPacket(data, sensDataPacketPrev));
+    } else {  // process packet from edison
+        _sensData.push_back(processInPacket(data));
+    }
 
-    // Fit sensor data:
+    // Fit sensor data (do it only if the buffer accumulated enough data):
     _fitData = _fitSensData(_sensData, fitWinLen);
 
     emit(sendSensData(_sensData, _fitData));
-
-    /*
-    const QString str1 = "90594.75079, 3,  -0.059,  0.098,  9.826, 4,  -0.000,  0.001,  0.001, 5,  16.191, 12.642,-34.497";
-    const QString str2 = "92309.37615, 3,  -0.043,  0.033,  9.722, 4,  -0.001, -0.001, -0.001";
-    const QString str3 = "92272.20973, 3,  -1.355, -0.098, 10.935";
-
-    qDebug() << "Message: " << data;
-
-    _sensDataPacket = processInputPacket(str1, _sensDataPacketPrev);
-    _sensDataPacketPrev = _sensDataPacket;
-    qDebug() << "sensDataPacket1: " << _sensDataPacket.toString();
-
-    _sensDataPacket = processInputPacket(str1, _sensDataPacketPrev);
-    _sensDataPacketPrev = _sensDataPacket;
-    qDebug() << "sensDataPacket2: " << _sensDataPacket.toString();
-
-    _sensDataPacket = processInputPacket(str1, _sensDataPacketPrev);
-    _sensDataPacketPrev = _sensDataPacket;
-    qDebug() << "sensDataPacket3: " << _sensDataPacket.toString();
-    qDebug() << "--------------------------------";
-    */
 }
 
 //-----------------------------------------------------------------------------
@@ -197,4 +168,17 @@ SensDataPacket RacketSensorServer::processInputPacket(const QString packet,
     sensDataPacket.mag.z = mag.at(2).toDouble();
 
     return sensDataPacket;
+}
+
+//-----------------------------------------------------------------------------
+SensDataPacket RacketSensorServer::processInPacket(const QString data)
+{
+    // Packet fromat:
+    // "s@TimeStamp@accX@accY@accZ@gyroX@gyroY@gyroZ@w@x@y@z@;"
+
+    SensDataPacket p;
+
+    p.timeStamp = 1;
+
+    return p;
 }
