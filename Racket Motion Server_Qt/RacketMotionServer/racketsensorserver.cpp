@@ -178,6 +178,10 @@ SensDataPacket RacketSensorServer::processInPacket(const QString data)
 
     SensDataPacket p;
 
+    std::string packet = data.toStdString();
+
+    int pos = packet.find_first_of("s@");
+
     p.timeStamp = 1;
 
     return p;

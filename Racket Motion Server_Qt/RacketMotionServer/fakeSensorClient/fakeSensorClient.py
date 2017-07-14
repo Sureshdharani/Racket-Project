@@ -7,6 +7,7 @@ Alexander Kozhinov <AlexanderKozhinov@yandex.com>
 """
 
 import numpy as np
+import argparse
 import socket
 import timeit
 import time
@@ -81,8 +82,14 @@ def main():
     # >>> main()
     """
 
-    ip = "127.0.0.1"
-    port = 5555
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-ip', required=True, help='destination ip adress')
+    parser.add_argument('-port', required=True, type=int,
+                        help='destination port')
+    args = parser.parse_args()
+
+    ip = args.ip
+    port = args.port
 
     acc = []
     gyro = []
@@ -92,6 +99,8 @@ def main():
 
     N = 50  # number of packets to send in one buffer
 
+    print("Start server...")
+    print("Send packets to  %s:%s" % (ip, port))
     print("Server is running...")
 
     k = 0
