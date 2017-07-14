@@ -59,9 +59,9 @@ void MainWin::connectSignals()
     // Q_ASSERT(!isCon);
 
     isCon = connect(_sensServer, SIGNAL(sendSensData(const SensData,
-                                                     const FitSensData)),
+                                                     const SensData)),
                     this, SLOT(rcvSensData(const SensData,
-                                           const FitSensData)));
+                                           const SensData)));
     // Q_ASSERT(!isCon);
 
     // Line edit objects
@@ -113,7 +113,7 @@ void MainWin::fitWinLenChnged()
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::rcvSensData(const SensData sensData, const FitSensData fitData)
+void MainWin::rcvSensData(const SensData sensData, const SensData fitData)
 {
     // calculate frames per second:
     static QTime time(QTime::currentTime());
@@ -195,9 +195,9 @@ void MainWin::setUpPlots()
     _setUpPlot(ui->wid32, timeFormat, timeAxisLabel, "w_z, rad/s");
 
     // magnetic field plots:
-    _setUpPlot(ui->wid13, timeFormat, timeAxisLabel, "M_x, uT");
-    _setUpPlot(ui->wid23, timeFormat, timeAxisLabel, "M_y, uT");
-    _setUpPlot(ui->wid33, timeFormat, timeAxisLabel, "M_z, uT");
+    _setUpPlot(ui->wid13, timeFormat, timeAxisLabel, "O_x, rad");
+    _setUpPlot(ui->wid23, timeFormat, timeAxisLabel, "O_y, rad");
+    _setUpPlot(ui->wid33, timeFormat, timeAxisLabel, "O_z, rad");
 }
 
 //-----------------------------------------------------------------------------
@@ -249,7 +249,7 @@ void MainWin::_appendToPlot(QCustomPlot *plot,
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::_updatePlots(const SensData sensData, const FitSensData fitData,
+void MainWin::_updatePlots(const SensData sensData, const SensData fitData,
                            const int scrollRange)
 {
     const double t = sensData.back().timeStamp;
@@ -265,9 +265,9 @@ void MainWin::_updatePlots(const SensData sensData, const FitSensData fitData,
     std::vector<double> gyroY;
     std::vector<double> gyroZ;
 
-    std::vector<double> magX;
-    std::vector<double> magY;
-    std::vector<double> magZ;
+    std::vector<double> thetaX;
+    std::vector<double> thetaY;
+    std::vector<double> thetaZ;
 
     foreach(SensDataPacket fd, fitData) {
         accX.push_back(fd.acc.x);
@@ -278,9 +278,9 @@ void MainWin::_updatePlots(const SensData sensData, const FitSensData fitData,
         gyroY.push_back(fd.gyro.y);
         gyroZ.push_back(fd.gyro.z);
 
-        magX.push_back(fd.mag.x);
-        magY.push_back(fd.mag.y);
-        magZ.push_back(fd.mag.z);
+        thetaX.push_back(fd.theta.x);
+        thetaY.push_back(fd.theta.y);
+        thetaZ.push_back(fd.theta.z);
         tFitData.push_back(fd.timeStamp);
     }
     // std::reverse(d.begin(), d.end());
@@ -293,7 +293,7 @@ void MainWin::_updatePlots(const SensData sensData, const FitSensData fitData,
     _appendToPlot(ui->wid22, t, packet.gyro.y, tFitData, gyroY, scrollRange);
     _appendToPlot(ui->wid32, t, packet.gyro.z, tFitData, gyroZ, scrollRange);
 
-    _appendToPlot(ui->wid13, t, packet.mag.x, tFitData, magX, scrollRange);
-    _appendToPlot(ui->wid23, t, packet.mag.y, tFitData, magY, scrollRange);
-    _appendToPlot(ui->wid33, t, packet.mag.z, tFitData, magZ, scrollRange);
+    _appendToPlot(ui->wid13, t, packet.theta.x, tFitData, thetaX, scrollRange);
+    _appendToPlot(ui->wid23, t, packet.theta.y, tFitData, thetaY, scrollRange);
+    _appendToPlot(ui->wid33, t, packet.theta.z, tFitData, thetaZ, scrollRange);
 }

@@ -30,7 +30,7 @@ struct SensDataPacket {
 
     Vec3D acc;
     Vec3D gyro;
-    Vec3D mag;
+    Vec3D theta;
 
     QString toString(const char prec = 'f', const int numDigit = 6)
     {
@@ -39,7 +39,7 @@ struct SensDataPacket {
         str.append("timeStamp: " + QString::number(timeStamp, prec, numDigit) + "; ");
         str.append("acc: " + acc.toString() + "; ");
         str.append("gyro: " + gyro.toString() + "; ");
-        str.append("mag: " + mag.toString());
+        str.append("theta: " + theta.toString());
         str.append("}");
         return str;
     }
@@ -47,7 +47,6 @@ struct SensDataPacket {
 
 // Sensor data FIFO:
 typedef std::deque<SensDataPacket> SensData;     // raw sensor data
-typedef std::deque<SensDataPacket> FitSensData;  // fitted sensor data
 
 class RacketSensorServer : public QObject
 {
@@ -81,7 +80,7 @@ public slots:
 
 signals:
     void sendState(const QString errorDescr);
-    void sendSensData(const SensData sensData, const FitSensData fitData);
+    void sendSensData(const SensData sensData, const SensData fitData);
 
 private:  // functions
     /* Fits the sensor data and returns new filled array
@@ -91,13 +90,16 @@ private:  // functions
      *  Return:
      *      Fitted sensor data
      */
-    FitSensData _fitSensData(const SensData data, const unsigned int N = 100);
+    SensData _fitSensData(const SensData data, const unsigned int N = 100);
+    static void _quat2euler(const float q_w, const float q_x,
+                            const float q_y, const float q_z,
+                            float *t_x, float *t_y, float *t_z);
 
 private:  // variables
 
     QUdpSocket* _socket;
     SensData _sensData;    // raw sensor data
-    FitSensData _fitData;  // fitted sensor data
+    SensData _fitData;  // fitted sensor data
 };
 
 #endif // RACKETSENSORCLIENT_H

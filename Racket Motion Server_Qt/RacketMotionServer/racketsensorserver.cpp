@@ -10,7 +10,7 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     _socket->bind(port);
 
     _sensData = SensData(NUM_PACKETS);
-    _fitData = FitSensData();
+    _fitData = SensData();
 
     fitWinLen = 100;
     isEdisson = true;
@@ -50,21 +50,21 @@ void RacketSensorServer::readPendingDatagrams()
         _sensData.push_back(processInPacket(data));
     }
 
-    // Fit sensor data (do it only if the buffer accumulated enough data):
-    // _fitData = _fitSensData(_sensData, fitWinLen);
-
-    emit(sendSensData(_sensData, _fitData));
+    if (false) {  // Fit sensor data (do it only if the buffer accumulated enough data):
+        _fitData = _fitSensData(_sensData, fitWinLen);
+        emit(sendSensData(_sensData, _fitData));
+    }
 }
 
 //-----------------------------------------------------------------------------
-FitSensData RacketSensorServer::_fitSensData(const SensData data,
+SensData RacketSensorServer::_fitSensData(const SensData data,
                                              const unsigned int N)
 {
     if (data.size() < N)
-        return static_cast<FitSensData>(data);
+        return data;
 
     // Create containers for fit:
-    FitSensData fitted = FitSensData(N);
+    SensData fitted = SensData(N);
 
     std::vector<double> time(N);
     std::vector<double> accX(N);
@@ -75,9 +75,9 @@ FitSensData RacketSensorServer::_fitSensData(const SensData data,
     std::vector<double> gyroY(N);
     std::vector<double> gyroZ(N);
 
-    std::vector<double> magX(N);
-    std::vector<double> magY(N);
-    std::vector<double> magZ(N);
+    std::vector<double> thetaX(N);
+    std::vector<double> thetaY(N);
+    std::vector<double> thetaZ(N);
 
     // Cut last N data points from data:
     unsigned int j = 0;
@@ -94,9 +94,9 @@ FitSensData RacketSensorServer::_fitSensData(const SensData data,
         gyroY.at(j) = data.at(i).gyro.y;
         gyroZ.at(j) = data.at(i).gyro.z;
 
-        magX.at(j) = data.at(i).mag.x;
-        magY.at(j) = data.at(i).mag.y;
-        magZ.at(j) = data.at(i).mag.z;
+        thetaX.at(j) = data.at(i).theta.x;
+        thetaY.at(j) = data.at(i).theta.y;
+        thetaZ.at(j) = data.at(i).theta.z;
         j++;
     }
 
@@ -139,7 +139,7 @@ SensDataPacket RacketSensorServer::processInputPacket(const QString packet,
 
     QStringList acc;
     QStringList gyro;
-    QStringList mag;
+    QStringList theta;
 
     list = list.at(0).split(del3, QString::SkipEmptyParts);
     sensDataPacket.timeStamp = list.at(0).toDouble();
@@ -162,10 +162,10 @@ SensDataPacket RacketSensorServer::processInputPacket(const QString packet,
     if (list.size() == 1) return sensDataPacket;
     list = QStringList(list.back());
 
-    mag = QString(list.at(0)).replace(" ", "").split(del, QString::SkipEmptyParts);
-    sensDataPacket.mag.x = mag.at(0).toDouble();
-    sensDataPacket.mag.y = mag.at(1).toDouble();
-    sensDataPacket.mag.z = mag.at(2).toDouble();
+    theta = QString(list.at(0)).replace(" ", "").split(del, QString::SkipEmptyParts);
+    sensDataPacket.theta.x = theta.at(0).toDouble();
+    sensDataPacket.theta.y = theta.at(1).toDouble();
+    sensDataPacket.theta.z = theta.at(2).toDouble();
 
     return sensDataPacket;
 }
@@ -207,9 +207,36 @@ SensDataPacket RacketSensorServer::processInPacket(const QString data)
     p.gyro.y = std::stof(p_vec.at(5));
     p.gyro.z = std::stof(p_vec.at(6));
 
-    p.mag.x = std::stof(p_vec.at(7));
-    p.mag.y = std::stof(p_vec.at(8));
-    p.mag.z = std::stof(p_vec.at(9));
+    float q_w = std::stof(p_vec.at(7));
+    float q_x = std::stof(p_vec.at(8));
+    float q_y = std::stof(p_vec.at(9));
+    float q_z = std::stof(p_vec.at(10));
+    _quat2euler(q_w, q_x, q_y, q_z,
+                &(p.theta.x), &(p.theta.y), &(p.theta.z));
 
     return p;
+}
+
+//-----------------------------------------------------------------------------
+void RacketSensorServer::_quat2euler(const float q_w, const float q_x,
+                                     const float q_y, const float q_z,
+                                     float *t_x, float *t_y, float *t_z)
+{
+    double ysqr = q_y * q_y;
+
+    // roll (x-axis rotation)
+    double t0 = +2.0 * (q_w * q_x + q_y * q_z);
+    double t1 = +1.0 - 2.0 * (q_x * q_x + ysqr);
+    *t_x = std::atan2(t0, t1);
+
+    // pitch (y-axis rotation)
+    double t2 = +2.0 * (q_w * q_y - q_z * q_x);
+    t2 = ((t2 > 1.0) ? 1.0 : t2);
+    t2 = ((t2 < -1.0) ? -1.0 : t2);
+    *t_y = static_cast<float>(std::asin(t2));
+
+    // yaw (z-axis rotation)
+    double t3 = +2.0 * (q_w * q_z + q_x * q_y);
+    double t4 = +1.0 - 2.0 * (ysqr + q_z * q_z);
+    *t_z = static_cast<float>(std::atan2(t3, t4));
 }
