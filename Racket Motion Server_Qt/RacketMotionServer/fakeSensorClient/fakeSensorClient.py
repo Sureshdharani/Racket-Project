@@ -83,6 +83,16 @@ def generateRandSensData(acc_mu=0.0, acc_sigma=10,
 
 
 # -----------------------------------------------------------------------------
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+# -----------------------------------------------------------------------------
 def main():
     """
     Main function.
@@ -94,13 +104,16 @@ def main():
     parser.add_argument('-ip', required=True, help='destination ip adress')
     parser.add_argument('-port', required=True, type=int,
                         help='destination port')
-    parser.add_argument('-random', required=True, type=bool,
+    parser.add_argument('-random', required=True,
                         help='set to true to activate random values')
+    parser.add_argument('-n', required=False, type=int, default=50,
+                        help='buffer size to be sent')
     args = parser.parse_args()
 
     ip = args.ip
     port = args.port
-    isRandom = args.random
+    random = str2bool(args.random)
+    N = args.n  # number of packets to send in one buffer
 
     acc = []
     gyro = []
@@ -108,10 +121,9 @@ def main():
     packets = []
     t_samp = 10 / 1000.0  # 10 ms sampling time
 
-    N = 50  # number of packets to send in one buffer
-
     print("Start server...")
-    print("Send packets to  %s:%s" % (ip, port))
+    print("Send packets to  %s:%s with buffer size %s." % (ip, port, N))
+    print("Sending random packets: %s" % random)
     print("Server is running...")
 
     k = 0
@@ -123,7 +135,7 @@ def main():
 
         # sample packets to the buffer:
         for i in range(N):
-            acc, gyro, q = generateRandSensData(isRandom=isRandom)
+            acc, gyro, q = generateRandSensData(isRandom=random)
             p = createFakeAppEdissonPacket(timeStamp, acc, gyro, q)
             packets.append(p)
             time.sleep(t_samp)  # sleep for sampling time
@@ -134,8 +146,8 @@ def main():
             sendPacket(ip, port, p)
 
         # pause between packets
-        time.sleep(500 / 1000.0)
-        print("Buffer #%s were sent." % (k))
+        time.sleep(1000 / 1000.0)
+        # print("Buffer #%s were sent." % (k))
 
 
 # -----------------------------------------------------------------------------

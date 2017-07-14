@@ -203,5 +203,13 @@ SensDataPacket RacketSensorServer::processInPacket(const QString data)
     p.acc.y = std::stof(p_vec.at(2));
     p.acc.z = std::stof(p_vec.at(3));
 
+    p.gyro.x = std::stof(p_vec.at(4));
+    p.gyro.y = std::stof(p_vec.at(5));
+    p.gyro.z = std::stof(p_vec.at(6));
+
+    p.mag.x = std::stof(p_vec.at(7));
+    p.mag.y = std::stof(p_vec.at(8));
+    p.mag.z = std::stof(p_vec.at(9));
+
     return p;
 }
