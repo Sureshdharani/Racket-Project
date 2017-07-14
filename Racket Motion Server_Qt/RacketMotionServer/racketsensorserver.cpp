@@ -51,7 +51,7 @@ void RacketSensorServer::readPendingDatagrams()
     }
 
     // Fit sensor data (do it only if the buffer accumulated enough data):
-    _fitData = _fitSensData(_sensData, fitWinLen);
+    // _fitData = _fitSensData(_sensData, fitWinLen);
 
     emit(sendSensData(_sensData, _fitData));
 }
@@ -180,9 +180,28 @@ SensDataPacket RacketSensorServer::processInPacket(const QString data)
 
     std::string packet = data.toStdString();
 
-    int pos = packet.find_first_of("s@");
+    int posBeg = packet.find_first_of("s@");
+    int posEnd = packet.find_last_of("@;");
+    packet = packet.substr(posBeg + 2, posEnd - 2);
 
-    p.timeStamp = 1;
+    std::vector<std::string> p_vec;
+
+    posBeg = 0;
+    std::string del = "@";
+    for (size_t i = 0; i < packet.size(); ++i) {
+        if (packet.substr(i,1).compare(del) == 0) {
+            posEnd = packet.find_first_of("@", posBeg);
+            p_vec.push_back(packet.substr(posBeg,
+                                          std::abs(posEnd - posBeg)));
+            posBeg = i + 1;
+        }
+    }
+
+    p.timeStamp = std::stod(p_vec.at(0));
+
+    p.acc.x = std::stof(p_vec.at(1));
+    p.acc.y = std::stof(p_vec.at(2));
+    p.acc.z = std::stof(p_vec.at(3));
 
     return p;
 }

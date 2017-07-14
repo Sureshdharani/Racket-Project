@@ -60,16 +60,24 @@ def createFakeAppEdissonPacket(t, acc, gyro, q):
 # -----------------------------------------------------------------------------
 def generateRandSensData(acc_mu=0.0, acc_sigma=10,
                          gyro_mu=0.0, gyro_sigma=200,
-                         q_mu=0.0, q_sigma=90):
+                         q_mu=0.0, q_sigma=90, isRandom=True):
     """
     Generates random sensor data
 
     # >>> acc, gyro, q = generateRandSensData()
     """
 
-    acc = np.random.normal(acc_mu, acc_sigma, size=3)
-    gyro = np.random.normal(gyro_mu, gyro_sigma, size=3)
-    q = np.random.normal(q_mu, q_sigma, size=4)
+    acc = []
+    gyro = []
+    q = []
+    if isRandom:
+        acc = np.random.normal(acc_mu, acc_sigma, size=3)
+        gyro = np.random.normal(gyro_mu, gyro_sigma, size=3)
+        q = np.random.normal(q_mu, q_sigma, size=4)
+    else:
+        acc = np.array([1, 2, 3])
+        gyro = np.array([4, 5, 6])
+        q = np.array([7, 8, 9, 10])
 
     return acc, gyro, q
 
@@ -86,10 +94,13 @@ def main():
     parser.add_argument('-ip', required=True, help='destination ip adress')
     parser.add_argument('-port', required=True, type=int,
                         help='destination port')
+    parser.add_argument('-random', required=True, type=bool,
+                        help='set to true to activate random values')
     args = parser.parse_args()
 
     ip = args.ip
     port = args.port
+    isRandom = args.random
 
     acc = []
     gyro = []
@@ -112,7 +123,7 @@ def main():
 
         # sample packets to the buffer:
         for i in range(N):
-            acc, gyro, q = generateRandSensData()
+            acc, gyro, q = generateRandSensData(isRandom=isRandom)
             p = createFakeAppEdissonPacket(timeStamp, acc, gyro, q)
             packets.append(p)
             time.sleep(t_samp)  # sleep for sampling time
@@ -123,8 +134,8 @@ def main():
             sendPacket(ip, port, p)
 
         # pause between packets
-        # time.sleep(np.random.normal(100, 25, size=1)[0] / 1000.0)
-        # print("Sending buffer #%s" % (k))
+        time.sleep(500 / 1000.0)
+        print("Buffer #%s were sent." % (k))
 
 
 # -----------------------------------------------------------------------------
