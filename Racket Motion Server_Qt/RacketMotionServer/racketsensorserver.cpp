@@ -50,9 +50,9 @@ void RacketSensorServer::readPendingDatagrams()
         _sensData.push_back(processInPacket(data));
     }
 
-    if (false) {  // Fit sensor data (do it only if the buffer accumulated enough data):
+    if (true) {  // Fit sensor data (do it only if the buffer accumulated enough data):
         _fitData = _fitSensData(_sensData, fitWinLen);
-        emit(sendSensData(_sensData, _fitData));
+        // emit(sendSensData(_sensData, _fitData));
     }
 }
 
