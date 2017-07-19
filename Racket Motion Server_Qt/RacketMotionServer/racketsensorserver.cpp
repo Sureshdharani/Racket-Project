@@ -227,7 +227,7 @@ void RacketSensorServer::_quat2euler(const float q_w, const float q_x,
     // roll (x-axis rotation)
     double t0 = +2.0 * (q_w * q_x + q_y * q_z);
     double t1 = +1.0 - 2.0 * (q_x * q_x + ysqr);
-    *t_x = std::atan2(t0, t1);
+    *t_x = static_cast<float>(std::atan2(t0, t1));
 
     // pitch (y-axis rotation)
     double t2 = +2.0 * (q_w * q_y - q_z * q_x);

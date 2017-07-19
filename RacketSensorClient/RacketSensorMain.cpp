@@ -27,15 +27,21 @@
 #include <string>
 #include <atomic>
 #include <thread>  // NOLINT()
+#include <cmath>
 
 #include "I2Cdev_mraa.hpp"
 #include "MPU9250_DMP.hpp"
 #include "helper_3dmath.hpp"
 
-#define QUATERNION
+// #define DEBUG
+
+// #define QUATERNION
+#define EULER_ANGLES
 
 #define MPU_Addr 0x69
 #define I2C_Bus_no 1
+
+#define DIVIDER static_cast<float>(16384.0)
 
 using std::vector;
 using std::string;
@@ -91,21 +97,38 @@ float ypr[3];  // [yaw, pitch, roll] - yaw/pitch/roll
 
 // ----------------------------------------------------------------------------
 struct Motion_param {
-    int16_t Acc_x_Raw = 0;
-    int16_t Acc_y_Raw = 0;
-    int16_t Acc_z_Raw = 0;
-    int16_t Gyro_x_Raw = 0;
-    int16_t Gyro_y_Raw = 0;
-    int16_t Gyro_z_Raw = 0;
+    // Acceleration
+    float Acc_x_Raw = 0;
+    float Acc_y_Raw = 0;
+    float Acc_z_Raw = 0;
+
+    // Gyroscope:
+    float Gyro_x_Raw = 0;
+    float Gyro_y_Raw = 0;
+    float Gyro_z_Raw = 0;
+
+    // Quaternions
     float w = 0;
     float x = 0;
     float y = 0;
     float z = 0;
+
+    // Orientations
+    float oX = 0;
+    float oY = 0;
+    float oZ = 0;
+
+    // Time stamp:
     int64_t Timestamp = 0;
 };
 
+
+// Functions declaration
 Motion_param MPU9250_Loop();
 void MPU9250_GPIO_Init();
+void quat2euler(const float q_w,
+                const float q_x, const float q_y, const float q_z,
+                float *t_x, float *t_y, float *t_z);
 
 // ----------------------------------------------------------------------------
 void MPU9250_GPIO_Init() {
@@ -156,52 +179,36 @@ Motion_param MPU9250_Loop() {
 
     int64_t Timestamp = Get_TimeSinceEpochMillis();
     Motion_param mp;
-    #ifdef QUATERNION
-        // Display quaternion values in easy matrix form: w x y z
-        mpu.dmpGetQuaternion(&q, fifoBuffer);
-        int16_t Acc_x_Raw = 0;
-        int16_t Acc_y_Raw = 0;
-        int16_t Acc_z_Raw = 0;
-        int16_t Gyro_x_Raw = 0;
-        int16_t Gyro_y_Raw = 0;
-        int16_t Gyro_z_Raw = 0;
 
-        mpu.getAcceleration(&Acc_x_Raw, &Acc_y_Raw, &Acc_z_Raw);
-        mp.Acc_x_Raw  = Acc_x_Raw;  // / 16384.0;
-        mp.Acc_y_Raw  = Acc_y_Raw;  // / 16384.0;
-        mp.Acc_z_Raw  = Acc_z_Raw;  // / 16384.0;
-        mpu.getRotation(&Gyro_x_Raw, &Gyro_y_Raw, &Gyro_z_Raw);
-        mp.Gyro_x_Raw = Gyro_x_Raw;
-        mp.Gyro_y_Raw = Gyro_y_Raw;
-        mp.Gyro_z_Raw = Gyro_z_Raw;
-        // std::cout << Ansi_Colour << "[ SEN" << i << " ]"
-        // << ANSI_COLOUR_RESET << ".."<<fifoCount;
-        // std::cout << "\t";
-        mp.w = q.w;
-        mp.x = q.x;
-        mp.y = q.y;
-        mp.z = q.z;
-        mp.Timestamp = Timestamp;
-        return mp;
-    #endif
+    // Display quaternion values in easy matrix form: w x y z
+    mpu.dmpGetQuaternion(&q, fifoBuffer);
+    int16_t Acc_x_Raw = 0;
+    int16_t Acc_y_Raw = 0;
+    int16_t Acc_z_Raw = 0;
+    int16_t Gyro_x_Raw = 0;
+    int16_t Gyro_y_Raw = 0;
+    int16_t Gyro_z_Raw = 0;
 
-    #ifdef EULER_ANGLES
-        // Display Euler angles in degrees
-        mpu.dmpGetQuaternion(&q, fifoBuffer);
-        mpu.dmpGetEuler(euler, &q);
-        // std::cout << "Euler Angles\t";
-        // std::cout << Ansi_Colour << "[ SEN" << i << " ]"
-        // << ANSI_COLOUR_RESET;
-        // std::cout << "\t";
-        mp.x = (euler[0] * 180/M_PI);
-        // std::cout << (euler[0] * 180/M_PI) ;std::cout << "\t";
-        mp.y = (euler[1] * 180/M_PI);
-        // std::cout << (euler[1] * 180/M_PI);std::cout << "\t";
-        mp.z = (euler[1] * 180/M_PI);
-        // std::cout << (euler[2] * 180/M_PI) << "\n"<< endl;
-        mp.Timestamp = Timestamp;
-        return mp;
-    #endif
+    mpu.getAcceleration(&Acc_x_Raw, &Acc_y_Raw, &Acc_z_Raw);
+    mp.Acc_x_Raw  = static_cast<float>(Acc_x_Raw) / DIVIDER;
+    mp.Acc_y_Raw  = static_cast<float>(Acc_y_Raw) / DIVIDER;
+    mp.Acc_z_Raw  = static_cast<float>(Acc_z_Raw) / DIVIDER;
+
+    mpu.getRotation(&Gyro_x_Raw, &Gyro_y_Raw, &Gyro_z_Raw);
+    mp.Gyro_x_Raw = static_cast<float>(Gyro_x_Raw);
+    mp.Gyro_y_Raw = static_cast<float>(Gyro_y_Raw);
+    mp.Gyro_z_Raw = static_cast<float>(Gyro_z_Raw);
+
+    mp.w = q.w;
+    mp.x = q.x;
+    mp.y = q.y;
+    mp.z = q.z;
+
+    // Calculate orientation from quaternions:
+    quat2euler(q.w, q.x, q.y, q.z, &(mp.oX), &(mp.oY), &(mp.oZ));
+    mp.Timestamp = Timestamp;
+
+    return mp;
 }
 
 // ----------------------------------------------------------------------------
@@ -224,9 +231,9 @@ void MPU9250_Setup() {
     }
 
     // Initialize the DMP
-    printf("Initializing DMP... \n");
+    cout << "Initializing DMP... " << endl;
     devStatus = mpu.dmpInitialize();
-    std::cout << "DMP Status";
+    cout << "DMP Status: ";
 
     // Make sure it worked (returns 0 if so)
     if (devStatus == 0) {
@@ -243,8 +250,8 @@ void MPU9250_Setup() {
         packetSize = mpu.dmpGetFIFOPacketSize();
 
     } else {
-        cout << "DMP Initialization failed";
-        std::cout << devStatus;
+        cout << "DMP Initialization failed: ";
+        cout << devStatus;
         cout  << ")" << endl;
     }
 
@@ -278,9 +285,9 @@ string Send_MsgStr(Motion_param mp) {
                        to_string(mp.Gyro_x_Raw) + "@" +
                        to_string(mp.Gyro_y_Raw) + "@" +
                        to_string(mp.Gyro_z_Raw) + "@" +
-                       to_string(mp.x) + "@" +
-                       to_string(mp.y) + "@" +
-                       to_string(mp.z) + "@;";
+                       to_string(mp.oX) + "@" +
+                       to_string(mp.oY) + "@" +
+                       to_string(mp.oZ) + "@;";
     #endif
 
     return Send_Message;
@@ -412,6 +419,29 @@ void readCin(std::atomic<bool> *run) {
 }
 
 // ----------------------------------------------------------------------------
+void quat2euler(const float q_w,
+                const float q_x, const float q_y, const float q_z,
+                float *t_x, float *t_y, float *t_z) {
+    double ysqr = q_y * q_y;
+
+    // roll (x-axis rotation)
+    double t0 = +2.0 * (q_w * q_x + q_y * q_z);
+    double t1 = +1.0 - 2.0 * (q_x * q_x + ysqr);
+    *t_x = static_cast<float>(std::atan2(t0, t1));
+
+    // pitch (y-axis rotation)
+    double t2 = +2.0 * (q_w * q_y - q_z * q_x);
+    t2 = ((t2 > 1.0) ? 1.0 : t2);
+    t2 = ((t2 < -1.0) ? -1.0 : t2);
+    *t_y = static_cast<float>(std::asin(t2));
+
+    // yaw (z-axis rotation)
+    double t3 = +2.0 * (q_w * q_z + q_x * q_y);
+    double t4 = +1.0 - 2.0 * (ysqr + q_z * q_z);
+    *t_z = static_cast<float>(std::atan2(t3, t4));
+}
+
+// ----------------------------------------------------------------------------
 int main(int argc, const char* argv[]) {
     // Parse command line arguments:
     if (argc < 11) {
@@ -469,7 +499,9 @@ int main(int argc, const char* argv[]) {
             someRec.push_back(Mp);
 
             // Onply for debugn purposes:
-            // cout << Send_MsgStr(Mp) << endl;
+            #ifdef DEBUG
+                cout << Send_MsgStr(Mp) << endl;
+            #endif
 
             // Save the data if log is enabled
             if (set.isLog)
