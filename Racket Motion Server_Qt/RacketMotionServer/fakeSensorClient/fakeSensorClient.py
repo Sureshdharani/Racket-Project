@@ -30,7 +30,7 @@ def sendPacket(ip, port, packet):
 
 
 # -----------------------------------------------------------------------------
-def createFakeAppEdissonPacket(t, acc, gyro, q):
+def createFakePacketQuaternion(t, acc, gyro, q):
     """
     Creates fake edisson packet:
         t - time stamp as 32 bit int
@@ -46,7 +46,7 @@ def createFakeAppEdissonPacket(t, acc, gyro, q):
     >>> acc = np.array([1.1, 2.2, 3.3])
     >>> gyro = np.array([4.4, 5.5, 6.6])
     >>> q = np.array([7.7, 8.8, 9.9, 10.10])
-    >>> createFakeAppEdissonPacket(t, acc, gyro, q)
+    >>> createFakePacketQuaternion(t, acc, gyro, q)
     's@99999@1.1@2.2@3.3@4.4@5.5@6.6@7.7@8.8@9.9@10.1@;'
     """
     packet = "s@" + str(t) +\
@@ -58,28 +58,68 @@ def createFakeAppEdissonPacket(t, acc, gyro, q):
 
 
 # -----------------------------------------------------------------------------
+def createFakePacketEuler(t, acc, gyro, ang):
+    """
+    Creates fake edisson packet:
+        t - time stamp as 32 bit int
+        acc - three accelerations data (float): [x, y, z]
+        gyro - three gyroscope data (float): [x, y, z]
+        ang - Euler angle data (float): [x, y, z]
+
+    Note:
+        Packet format as string:
+            "s@TimeStamp@accX@accY@accZ@gyroX@gyroY@gyroZ@angX@angY@angZ@;"
+
+    >>> t = 99999
+    >>> acc = np.array([1.1, 2.2, 3.3])
+    >>> gyro = np.array([4.4, 5.5, 6.6])
+    >>> ang = np.array([7.7, 8.8, 9.9])
+    >>> createFakePacketEuler(t, acc, gyro, ang)
+    's@99999@1.1@2.2@3.3@4.4@5.5@6.6@7.7@8.8@9.9@;'
+    """
+    packet = "s@" + str(t) +\
+             "@" + str(acc[0]) + "@" + str(acc[1]) + "@" + str(acc[2]) +\
+             "@" + str(gyro[0]) + "@" + str(gyro[1]) + "@" + str(gyro[2]) +\
+             "@" + str(ang[0]) + "@" + str(ang[1]) + "@" + str(ang[2]) +\
+             "@;"
+    return packet
+
+
+# -----------------------------------------------------------------------------
 def generateRandSensData(acc_mu=0.0, acc_sigma=10,
                          gyro_mu=0.0, gyro_sigma=200,
+                         ang_mu=0.0, ang_sigma=360,
                          q_mu=0.0, q_sigma=90, isRandom=True):
     """
-    Generates random sensor data
+    Generates random sensor data.
 
-    # >>> acc, gyro, q = generateRandSensData()
+    >>> acc, gyro, ang, q = generateRandSensData(isRandom=False)
+    >>> acc
+    array([1, 2, 3])
+    >>> gyro
+    array([4, 5, 6])
+    >>> ang
+    array([7, 8, 9])
+    >>> q
+    array([10, 11, 12, 13])
     """
 
     acc = []
     gyro = []
+    ang = []
     q = []
     if isRandom:
         acc = np.random.normal(acc_mu, acc_sigma, size=3)
         gyro = np.random.normal(gyro_mu, gyro_sigma, size=3)
+        ang = np.random.normal(ang_mu, ang_sigma, size=3)
         q = np.random.normal(q_mu, q_sigma, size=4)
     else:
         acc = np.array([1, 2, 3])
         gyro = np.array([4, 5, 6])
-        q = np.array([7, 8, 9, 10])
+        ang = np.array([7, 8, 9])
+        q = np.array([10, 11, 12, 13])
 
-    return acc, gyro, q
+    return acc, gyro, ang, q
 
 
 # -----------------------------------------------------------------------------
@@ -108,18 +148,23 @@ def main():
                         help='set to true to activate random values')
     parser.add_argument('-n', required=False, type=int, default=50,
                         help='buffer size to be sent')
+    parser.add_argument('-eulerquat', required=False, default="true",
+                        help='Quaternions or Euler angles to be sent '
+                             '(default: true - for Euler angles)')
     args = parser.parse_args()
 
     ip = args.ip
     port = args.port
     random = str2bool(args.random)
     N = args.n  # number of packets to send in one buffer
+    isEuler = str2bool(args.random)
 
     acc = []
     gyro = []
     q = []
     packets = []
-    t_samp = 10 / 1000.0  # 10 ms sampling time
+    t_samp = 20 / 10000.0  # 20 ms sampling time
+    t_transfer = 1000 / 1000.0  # transfer time
 
     print("Start server...")
     print("Send packets to  %s:%s with buffer size %s." % (ip, port, N))
@@ -135,18 +180,29 @@ def main():
 
         # sample packets to the buffer:
         for i in range(N):
-            acc, gyro, q = generateRandSensData(isRandom=random)
-            p = createFakeAppEdissonPacket(timeStamp, acc, gyro, q)
-            packets.append(p)
-            time.sleep(t_samp)  # sleep for sampling time
+            # Create random packet:
+            acc, gyro, ang, q = generateRandSensData(isRandom=random)
+            pQ = createFakePacketQuaternion(timeStamp, acc, gyro, q)
+            pE = createFakePacketEuler(timeStamp, acc, gyro, ang)
+
+            print(pE)
+
+            # Append new packet to the buffer:
+            if isEuler is True:
+                packets.append(pE)
+            else:
+                packets.append(pQ)
+
+            # Sleep - sampling time
+            time.sleep(t_samp)
             timeStamp += t.timeit()
 
-        # send buffer
+        # Send buffer
         for p in packets:
             sendPacket(ip, port, p)
 
-        # pause between packets
-        time.sleep(1000 / 1000.0)
+        # Pause between packets
+        time.sleep(t_transfer)
         # print("Buffer #%s were sent." % (k))
 
 
