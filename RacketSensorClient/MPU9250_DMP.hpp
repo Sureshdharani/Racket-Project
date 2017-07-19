@@ -798,6 +798,7 @@ uint8_t MPU9250::dmpReadAndProcessFIFOPacket(uint8_t numPackets,
                                              uint8_t *processed) {
     uint8_t status;
     uint8_t buf[dmpPacketSize];
+    uint8_t tmp = *processed;
     for (uint8_t i = 0; i < numPackets; i++) {
         // read packet from FIFO
         getFIFOBytes(buf, dmpPacketSize);
@@ -806,9 +807,12 @@ uint8_t MPU9250::dmpReadAndProcessFIFOPacket(uint8_t numPackets,
         if ((status = dmpProcessFIFOPacket(buf)) > 0) return status;
 
         // increment external process count variable, if supplied
-        if (processed != 0)
-            *processed++;
+        // if (processed != 0)
+        //    *processed++;
+        if (tmp != 0)
+            tmp++;
     }
+    *processed = tmp;
     return 0;
 }
 

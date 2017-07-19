@@ -3686,6 +3686,8 @@ bool MPU9250::writeMemoryBlock(const uint8_t *data, uint16_t dataSize,
 
     // Initialize starting values
     verifyBuffer = 0;
+    progBuffer = 0;
+
     if (verify)
         verifyBuffer = (uint8_t *)malloc(MPU9250_DMP_MEMORY_CHUNK_SIZE);  // NOLINT
     if (useProgMem)

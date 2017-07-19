@@ -3,11 +3,7 @@
     Suresh ...
 */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <signal.h>
-#include <math.h>
-#include <string.h>
 #include <mraa.h>
 #include <time.h>
 #include <sys/types.h>
@@ -16,15 +12,21 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <exception>
 #include <iostream>
+#include <fstream>
 #include <array>
 #include <vector>
 #include <chrono>  // NOLINT()
 #include <ctime>  // NOLINT()
 #include <ratio>  // NOLINT()
 #include <string>
+#include <atomic>
+#include <thread>  // NOLINT()
 
 #include "I2Cdev_mraa.hpp"
 #include "MPU9250_DMP.hpp"
@@ -55,6 +57,8 @@ struct ClientSettings {
     unsigned int bufLen = 100;
     unsigned int udpBufLen = 300;
     unsigned int measWaitTime = 2000;
+    bool isCmdPrint = false;
+    bool isLog = false;
 };
 
 MPU9250 mpu;
@@ -329,6 +333,8 @@ void printUsage() {
     cout << "\t\t-udpbufl - UDP buffer length (typical 300)" << endl;
     cout << "\t\t-mwaitus - measurement wait time in us (typical 2000)"
     << endl;
+    cout << "\t\t-log - measurement data log (typical off)" << endl;
+    cout << "\t\t-cmdprint - printig to cmd (typical off)" << endl;
     cout << endl;
 }
 
@@ -353,12 +359,56 @@ CmdParserOut parseCommandLineArgs(const char* argv[], int argc,
             settings->udpBufLen = std::stoul(args.at(i));
         } else if (s == "-mwaitus") {
             settings->measWaitTime = std::stoul(args.at(i));
+        } else if (s == "-log") {
+            if (args.at(i) == "on") {
+                settings->isLog = true;
+            }
+        } else if (s == "-cmdprint") {
+            if (args.at(i) == "on") {
+                settings->isCmdPrint = true;
+            }
         } else {  // wrong parameter
             parserOut.isValid = false;
             parserOut.error = "Error: Wrong command line argument: " + s;
         }
     }
     return parserOut;
+}
+
+// ----------------------------------------------------------------------------
+void logData(vector<Motion_param> motionRecord) {
+    // Generate log file name:
+    std::string logFileName = "DataLog_";
+
+    auto end = std::chrono::system_clock::now();
+    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+    std::ctime(&end_time);
+
+    std::ostringstream oss;
+    oss << std::ctime(&end_time);
+    auto strTime = oss.str();
+    strTime = strTime.substr(0, strTime.size()-1);  // delete last character
+
+    logFileName.append(strTime);
+    logFileName.append(".txt");
+
+    std::ofstream logFile;
+    logFile.open(logFileName);
+
+    for (unsigned int i = 0; i < motionRecord.size(); i++)
+        logFile << Send_MsgStr(motionRecord.at(i)) << "\n";
+
+    logFile.close();
+}
+
+// ----------------------------------------------------------------------------
+void readCin(std::atomic<bool> *run) {
+    std::string buffer;
+    while (run->load()) {
+        std::cin >> buffer;
+        if (buffer == "q")
+            run->store(false);
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -387,6 +437,7 @@ int main(int argc, const char* argv[]) {
 
     int Record_count = 0;
     vector<Motion_param> someRec;
+    vector<Motion_param> someLogRec;  // log vector
     int Buffer_size = set.bufLen;
     int Buffer_count = 1;
     std::chrono::duration<double> time_span;
@@ -400,27 +451,63 @@ int main(int argc, const char* argv[]) {
     cout << "\tBuffer size: " << set.bufLen << endl;
     cout << "\tUDP buffer size: " << set.udpBufLen << endl;
     cout << "\tMeasurement waiting time: " << set.measWaitTime << endl;
+    cout << "\tLogging: " << set.isLog << endl;
+    cout << "\tCmd Print: " << set.isCmdPrint << endl;
     cout << "------------------------------------------------" << endl;
 
     try {
-        while (1) {
-            Motion_param Mp = MPU9250_Loop();
+        Motion_param Mp;
+
+        // Asynchronouse console input thread:
+        std::atomic<bool> run(true);
+        std::thread cinThread(readCin, &run);  // std::ref(run)
+
+        cout << "***** Type 'q' to quit the application *****" << endl;
+        cout << "Server is running..." << endl;
+        while (run.load()) {
+            Mp = MPU9250_Loop();  // read motion data
             someRec.push_back(Mp);
+
+            // Onply for debugn purposes:
+            // cout << Send_MsgStr(Mp) << endl;
+
+            // Save the data if log is enabled
+            if (set.isLog)
+                someLogRec.push_back(Mp);
 
             if (Buffer_count >= Buffer_size) {
                 t1 = std::chrono::high_resolution_clock::now();
                 SendUDP(someRec, set);
+
+                // Clear internal data vector:
                 Buffer_count = 0;
                 someRec.clear();
+
+                // Time for sending over udp:
                 t2 = std::chrono::high_resolution_clock::now();
                 time_span = std::chrono::duration_cast
                             <std::chrono::duration<double>>(t2 - t1);
-                cout << "Transfer in "
-                << time_span.count() * 1000 << " ms."
-                << endl;
+
+                // Console printing on/off
+                if (set.isCmdPrint) {
+                    cout << "Transfer in "
+                    << time_span.count() * 1000 << " ms."
+                    << endl;
+                }
             }
             Record_count++;
             Buffer_count++;
+        }
+        run.store(false);
+        cinThread.join();
+
+        // Write notification to user:
+        cout << "***** Sensor Server were stopped by the user. *****" << endl;
+
+        // Logging the data to internal storage:
+        if (set.isLog) {
+            cout << "***** Write log data. *****" << endl;
+            logData(someLogRec);
         }
     } catch (std::string &err) {
         cout << "Error: " << err << endl;
@@ -430,5 +517,6 @@ int main(int argc, const char* argv[]) {
         return -1;
     }
 
+    cout << "***** Exit Programm. *****" << endl;
     return 0;
 }
