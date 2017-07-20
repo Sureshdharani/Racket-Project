@@ -86,7 +86,7 @@ def plotData(t, acc, gyro, ang, fig, s=0.75, scatter=True, fontsize=10):
     >>> plotData(t, acc, gyro, ang, fig=fig1, s=2, scatter=True)
     >>> acc = acc - 1
     >>> plotData(t, acc, gyro, ang, fig=fig1, s=2, scatter=True)
-    >>> plt.show()
+    # >>> plt.show()
     """
 
     fontSz = fontsize
@@ -169,8 +169,6 @@ def plotData(t, acc, gyro, ang, fig, s=0.75, scatter=True, fontsize=10):
 def main():
     """
     Main function.
-
-    # >>> main()
     """
     pass
 
