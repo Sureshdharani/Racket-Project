@@ -14,16 +14,16 @@ import time
 
 
 # -----------------------------------------------------------------------------
-def sendPacket(ip, port, packet):
+def sendBuffer(ip, port, buffer):
     """
     Sends UDP packet to ip on port
-    # >>> sendPacket("127.0.0.1", 5555, "Hey")
     """
     # initialize socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     # send packet
-    s.sendto(packet.encode('ascii', 'replace'), (ip, port))
+    for packet in buffer:
+        s.sendto(packet.encode('ascii', 'replace'), (ip, port))
 
     # close the socket
     s.close()
@@ -151,24 +151,35 @@ def main():
     parser.add_argument('-eulerquat', required=False, default="true",
                         help='Quaternions or Euler angles to be sent '
                              '(default: true - for Euler angles)')
+    parser.add_argument('-sendpause', required=False, type=float,
+                        default=100.0,
+                        help='UDP send pause between buffers in ms'
+                             ' (dedault 100 ms)')
     args = parser.parse_args()
 
     ip = args.ip
     port = args.port
     random = str2bool(args.random)
     N = args.n  # number of packets to send in one buffer
-    isEuler = str2bool(args.random)
+    isEuler = str2bool(args.eulerquat)
 
     acc = []
     gyro = []
     q = []
-    packets = []
+    buffer = []
     t_samp = 20 / 10000.0  # 20 ms sampling time
-    t_transfer = 1000 / 1000.0  # transfer time
+    t_transfer = args.sendpause / 1000.0  # transfer time
 
+    print("---------------------------------------------------------------")
     print("Start server...")
-    print("Send packets to  %s:%s with buffer size %s." % (ip, port, N))
-    print("Sending random packets: %s" % random)
+    print("---------------------------------------------------------------")
+    print("***** Server parameters *****")
+    print("Send packets to\t\t%s:%s with buffer size %s." % (ip, port, N))
+    print("Random packets:\t\t%s" % random)
+    print("Buffer size:\t\t%s" % N)
+    print("UDP send pause between buffers:\t\t%s ms" % (t_transfer * 1000))
+    print("Is Euler:\t\t%s" % isEuler)
+    print("---------------------------------------------------------------")
     print("Server is running...")
 
     k = 0
@@ -182,24 +193,29 @@ def main():
         for i in range(N):
             # Create random packet:
             acc, gyro, ang, q = generateRandSensData(isRandom=random)
-            pQ = createFakePacketQuaternion(timeStamp, acc, gyro, q)
-            pE = createFakePacketEuler(timeStamp, acc, gyro, ang)
-
-            print(pE)
+            pQ = []
+            pE = []
 
             # Append new packet to the buffer:
             if isEuler is True:
-                packets.append(pE)
+                pE = createFakePacketEuler(timeStamp, acc, gyro, ang)
+                buffer.append(pE)
+                # print(pE)
             else:
-                packets.append(pQ)
+                pQ = createFakePacketQuaternion(timeStamp, acc, gyro, q)
+                buffer.append(pQ)
+                # print(pQ)
+
+            # print(buffer)
+            # return
 
             # Sleep - sampling time
             time.sleep(t_samp)
             timeStamp += t.timeit()
 
         # Send buffer
-        for p in packets:
-            sendPacket(ip, port, p)
+        sendBuffer(ip, port, buffer)
+        buffer = []
 
         # Pause between packets
         time.sleep(t_transfer)
