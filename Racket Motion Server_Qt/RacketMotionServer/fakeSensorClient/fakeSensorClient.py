@@ -167,14 +167,14 @@ def main():
     gyro = []
     q = []
     buffer = []
-    t_samp = 20 / 10000.0  # 20 ms sampling time
+    t_samp = 10 / 10000.0  # 20 ms sampling time
     t_transfer = args.sendpause / 1000.0  # transfer time
 
     print("---------------------------------------------------------------")
     print("Start server...")
     print("---------------------------------------------------------------")
     print("***** Server parameters *****")
-    print("Send packets to\t\t%s:%s with buffer size %s." % (ip, port, N))
+    print("Send packets to\t\t%s:%s" % (ip, port))
     print("Random packets:\t\t%s" % random)
     print("Buffer size:\t\t%s" % N)
     print("UDP send pause between buffers:\t\t%s ms" % (t_transfer * 1000))

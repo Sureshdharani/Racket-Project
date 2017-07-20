@@ -53,33 +53,25 @@ MainWin::~MainWin()
 //-----------------------------------------------------------------------------
 void MainWin::connectSignals()
 {
-    bool isCon = false;
-    isCon = connect(_sensServer, SIGNAL(sendState(const QString)),
-                    this, SLOT(showState(const QString)));
-    // Q_ASSERT(!isCon);
+    connect(_sensServer, SIGNAL(sendState(const QString)), this,
+            SLOT(showState(const QString)));
 
-    isCon = connect(_sensServer, SIGNAL(sendSensData(const SensData,
-                                                     const SensData)),
-                    this, SLOT(rcvSensData(const SensData,
-                                           const SensData)));
-    // Q_ASSERT(!isCon);
+    connect(_sensServer,
+            SIGNAL(sendSensData(const SensBuffer, const SensBuffer)),
+            this, SLOT(rcvSensData(const SensBuffer, const SensBuffer)));
 
     // Line edit objects
-    isCon = connect(ui->localPortLnEd, SIGNAL(editingFinished()),
-                    this, SLOT(portChanged()));
-    // Q_ASSERT(!isCon);
+    connect(ui->localPortLnEd, SIGNAL(editingFinished()), this,
+            SLOT(portChanged()));
 
-    isCon = connect(ui->fitWinLenLnEd, SIGNAL(editingFinished()),
-                            this, SLOT(fitWinLenChnged()));
-    // Q_ASSERT(!isCon);
+    connect(ui->fitWinLenLnEd, SIGNAL(editingFinished()), this,
+            SLOT(fitWinLenChnged()));
 
-    isCon = connect(ui->isPhoneChBox, SIGNAL(stateChanged(int)),
-                            this, SLOT(phoneSelected(int)));
-    // Q_ASSERT(!isCon);
+    connect(ui->isPhoneChBox, SIGNAL(stateChanged(int)), this,
+            SLOT(phoneSelected(int)));
 
-    isCon = connect(ui->isEdissonChBox, SIGNAL(stateChanged(int)),
-                            this, SLOT(edissonSelected(int)));
-    // Q_ASSERT(!isCon);
+    connect(ui->isEdissonChBox, SIGNAL(stateChanged(int)), this,
+            SLOT(edissonSelected(int)));
 }
 
 //-----------------------------------------------------------------------------
@@ -113,9 +105,9 @@ void MainWin::fitWinLenChnged()
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::rcvSensData(const SensData sensData, const SensData fitData)
+void MainWin::rcvSensData(const SensBuffer sensData, const SensBuffer fitData)
 {
-    // calculate frames per second:
+    // Calculate frames per second:
     static QTime time(QTime::currentTime());
     double key = time.elapsed()/1000.0; // time elapsed since start, in seconds
     double t1 = time.elapsed();
@@ -123,43 +115,25 @@ void MainWin::rcvSensData(const SensData sensData, const SensData fitData)
     static double lastFpsKey;
     static int frameCount;
     double dtPlot = t1 - _prevPlotTimePoint;
+    const unsigned int scrollRange = ui->pltBufSzLnEd->text().toInt();
 
-    // Plot only each PLOT_TIME_MS:
-    if (dtPlot >= ui->pltUpTimeMSLnEd->text().toInt())  // in ms
-    {
-        const unsigned int scrollRange = ui->pltBufSzLnEd->text().toInt();
-        // QtConcurrent::run(this, &MainWin::_appendToPlot, ui->wid11,
-        // sensDataPacket.timeStamp, sensDataPacket.acc.x, scrollRange);
-        _updatePlots(sensData, fitData, scrollRange);
+    // QtConcurrent::run(this, &MainWin::_appendToPlot, ui->wid11,
+    // sensDataPacket.timeStamp, sensDataPacket.acc.x, scrollRange);
+    _updatePlots(sensData, fitData, scrollRange);
+    ++frameCount;
+    _prevPlotTimePoint = t1;
 
-        ++frameCount;
-        _prevPlotTimePoint = t1;
+    ui->plotTimeMSLabel->setText(QString::number(dtPlot, 'f', 2));
+    ui->FPSLabel->setText(QString::number(frameCount/(key-lastFpsKey), 'f', 2));
+    ui->totDataPtLabel->setText(QString::number(ui->wid11->graph(0)->data()->size()));
+    ui->transferTimeMSLabel->setText(QString::number((sensData.back().t - _prevTimeStamp) * 1000, 'f', 2));
+    ui->procTimeMSLabel->setText(QString::number(t1 - _prevProcessTimePoint, 'f', 2));
 
-        ui->plotTimeMSLabel->setText(QString::number(dtPlot, 'f', 2));
-        ui->FPSLabel->setText(QString::number(frameCount/(key-lastFpsKey), 'f', 2));
-        ui->totDataPtLabel->setText(QString::number(ui->wid11->graph(0)->data()->size()));
-        ui->transferTimeMSLabel->setText(
-                    QString::number(
-                        (sensData.back().timeStamp - _prevTimeStamp) * 1000, 'f', 2));
-        ui->procTimeMSLabel->setText(QString::number(t1 - _prevProcessTimePoint, 'f', 2));
-    }
-    /*
-    ui->statusBar->showMessage(
-          QString("%1 FPS, Total Data points: %2, Processing time: %3 ms, "
-                  "Transfer Time: %4 ms, Plot Time: %5")
-          .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
-          .arg(ui->wid11->graph(0)->data()->size())
-          .arg(t1 - _prevProcessTimePoint, 0, 'f', 2)
-          .arg((sensData.timeStamp - _prevTimeStamp) * 1000, 0, 'f', 4)
-          .arg(dtPlot, 0, 'f', 4), 0);
-   */
-
-
-   // update timer variables
-   lastFpsKey = key;
-   frameCount = 0;
-   _prevProcessTimePoint = t1;
-   _prevTimeStamp = sensData.back().timeStamp;
+    // Update timer variables
+    lastFpsKey = key;
+    frameCount = 0;
+    _prevProcessTimePoint = t1;
+    _prevTimeStamp = sensData.back().t;
 }
 
 //-----------------------------------------------------------------------------
@@ -173,7 +147,6 @@ void MainWin::setUpGUI()
 {
     ui->localPortLnEd->setValidator(new QIntValidator(1, 65536, this));
     ui->pltBufSzLnEd->setValidator(new QIntValidator(5, 1000, this));
-    ui->pltUpTimeMSLnEd->setValidator(new QIntValidator(1, 1000, this));
     ui->fitWinLenLnEd->setValidator(new QIntValidator(10, 1000, this));
 }
 
@@ -249,11 +222,11 @@ void MainWin::_appendToPlot(QCustomPlot *plot,
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::_updatePlots(const SensData sensData, const SensData fitData,
+void MainWin::_updatePlots(const SensBuffer sensData, const SensBuffer fitData,
                            const int scrollRange)
 {
-    const double t = sensData.back().timeStamp;
-    const SensDataPacket packet = sensData.back();
+    const auto t = sensData.back().t;
+    const auto packet = sensData.back();
 
     // = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
     std::vector<double> tFitData;
@@ -269,7 +242,7 @@ void MainWin::_updatePlots(const SensData sensData, const SensData fitData,
     std::vector<double> thetaY;
     std::vector<double> thetaZ;
 
-    foreach(SensDataPacket fd, fitData) {
+    foreach(auto fd, fitData) {
         accX.push_back(fd.acc.x);
         accY.push_back(fd.acc.y);
         accZ.push_back(fd.acc.z);
@@ -278,10 +251,10 @@ void MainWin::_updatePlots(const SensData sensData, const SensData fitData,
         gyroY.push_back(fd.gyro.y);
         gyroZ.push_back(fd.gyro.z);
 
-        thetaX.push_back(fd.theta.x);
-        thetaY.push_back(fd.theta.y);
-        thetaZ.push_back(fd.theta.z);
-        tFitData.push_back(fd.timeStamp);
+        thetaX.push_back(fd.ang.x);
+        thetaY.push_back(fd.ang.y);
+        thetaZ.push_back(fd.ang.z);
+        tFitData.push_back(fd.t);
     }
     // std::reverse(d.begin(), d.end());
 
@@ -293,7 +266,7 @@ void MainWin::_updatePlots(const SensData sensData, const SensData fitData,
     _appendToPlot(ui->wid22, t, packet.gyro.y, tFitData, gyroY, scrollRange);
     _appendToPlot(ui->wid32, t, packet.gyro.z, tFitData, gyroZ, scrollRange);
 
-    _appendToPlot(ui->wid13, t, packet.theta.x, tFitData, thetaX, scrollRange);
-    _appendToPlot(ui->wid23, t, packet.theta.y, tFitData, thetaY, scrollRange);
-    _appendToPlot(ui->wid33, t, packet.theta.z, tFitData, thetaZ, scrollRange);
+    _appendToPlot(ui->wid13, t, packet.ang.x, tFitData, thetaX, scrollRange);
+    _appendToPlot(ui->wid23, t, packet.ang.y, tFitData, thetaY, scrollRange);
+    _appendToPlot(ui->wid33, t, packet.ang.z, tFitData, thetaZ, scrollRange);
 }

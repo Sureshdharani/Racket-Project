@@ -9,8 +9,8 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     port = Port;
     _socket->bind(port);
 
-    _sensData = SensData(NUM_PACKETS);
-    _fitData = SensData();
+    _sensData = SensBuffer();
+    _fitData = SensBuffer();
 
     fitWinLen = 100;
     isEdisson = true;
@@ -42,29 +42,41 @@ void RacketSensorServer::readPendingDatagrams()
 
     QString data(buffer);
 
-    // Append new element
-    if (!isEdisson) {  // process packets from app
-        SensDataPacket sensDataPacketPrev = _sensData.empty() ? SensDataPacket() : _sensData.back();
-        _sensData.push_back(processInputPacket(data, sensDataPacketPrev));
-    } else {  // process packet from edison
-        _sensData.push_back(processInPacket(data));
-    }
+    _appendToBuffer(&_sensData, data);
 
     if (true) {  // Fit sensor data (do it only if the buffer accumulated enough data):
-        _fitData = _fitSensData(_sensData, fitWinLen);
+        // _fitData = _fitSensData(_sensData, fitWinLen);
         emit(sendSensData(_sensData, _fitData));
     }
 }
 
 //-----------------------------------------------------------------------------
-SensData RacketSensorServer::_fitSensData(const SensData data,
+void RacketSensorServer::_appendToBuffer(SensBuffer *sensData,
+                                         const QString data)
+{
+    // Delete packets from beggining of the buffer
+    // if the size exceeds its dimensions:
+    if (sensData->size() >= BUFF_SIZE)
+        sensData->pop_front();
+
+    // Append new element
+    if (!isEdisson) {  // process packets from mobile app
+        auto sensPacketPrev = sensData->empty() ? SensPacket() : sensData->back();
+        sensData->push_back(processInPacketMobile(data, sensPacketPrev));
+    } else {  // process packet from edison
+        sensData->push_back(processInPacketEdisson(data));
+    }
+}
+
+//-----------------------------------------------------------------------------
+SensBuffer RacketSensorServer::_fitSensData(const SensBuffer data,
                                              const unsigned int N)
 {
     if (data.size() < N)
         return data;
 
     // Create containers for fit:
-    SensData fitted = SensData(N);
+    auto fitted = SensBuffer(N);
 
     std::vector<double> time(N);
     std::vector<double> accX(N);
@@ -84,7 +96,7 @@ SensData RacketSensorServer::_fitSensData(const SensData data,
     for(unsigned int i = data.size()-1; i > data.size()-1-N; i--) {
         fitted.at(j) = data.at(i);
 
-        time.at(j) = data.at(i).timeStamp;
+        time.at(j) = data.at(i).t;
 
         accX.at(j) = data.at(i).acc.x;
         accY.at(j) = data.at(i).acc.y;
@@ -94,9 +106,9 @@ SensData RacketSensorServer::_fitSensData(const SensData data,
         gyroY.at(j) = data.at(i).gyro.y;
         gyroZ.at(j) = data.at(i).gyro.z;
 
-        thetaX.at(j) = data.at(i).theta.x;
-        thetaY.at(j) = data.at(i).theta.y;
-        thetaZ.at(j) = data.at(i).theta.z;
+        thetaX.at(j) = data.at(i).ang.x;
+        thetaY.at(j) = data.at(i).ang.y;
+        thetaZ.at(j) = data.at(i).ang.z;
         j++;
     }
 
@@ -124,59 +136,59 @@ SensData RacketSensorServer::_fitSensData(const SensData data,
 }
 
 //-----------------------------------------------------------------------------
-SensDataPacket RacketSensorServer::processInputPacket(const QString packet,
-                                         const SensDataPacket prevSensDataPacket)
+SensPacket RacketSensorServer::processInPacketMobile(const QString packet,
+                                      const SensPacket prevSensPacket)
 {
-    SensDataPacket sensDataPacket = prevSensDataPacket;
+    auto sensPacket = prevSensPacket;
     const QString del3 = ", 3,  ";
     const QString del4 = ", 4,  ";
     const QString del5 = ", 5,  ";
     const QString del = ",";
 
-    if (packet.isEmpty()) return sensDataPacket;
+    if (packet.isEmpty()) return sensPacket;
 
     QStringList list(packet);
 
     QStringList acc;
     QStringList gyro;
-    QStringList theta;
+    QStringList ang;
 
     list = list.at(0).split(del3, QString::SkipEmptyParts);
-    sensDataPacket.timeStamp = list.at(0).toDouble();
-    if (list.size() == 1) return sensDataPacket;
+    sensPacket.t = list.at(0).toDouble();
+    if (list.size() == 1) return sensPacket;
     list = QStringList(list.back());
 
     list = list.at(0).split(del4, QString::SkipEmptyParts);
     acc = QString(list.at(0)).replace(" ", "").split(del, QString::SkipEmptyParts);
-    sensDataPacket.acc.x = acc.at(0).toDouble();
-    sensDataPacket.acc.y = acc.at(1).toDouble();
-    sensDataPacket.acc.z = acc.at(2).toDouble();
-    if (list.size() == 1) return sensDataPacket;
+    sensPacket.acc.x = acc.at(0).toFloat();
+    sensPacket.acc.y = acc.at(1).toFloat();
+    sensPacket.acc.z = acc.at(2).toFloat();
+    if (list.size() == 1) return sensPacket;
     list = QStringList(list.back());
 
     list = list.at(0).split(del5, QString::SkipEmptyParts);
     gyro = QString(list.at(0)).replace(" ", "").split(del, QString::SkipEmptyParts);
-    sensDataPacket.gyro.x = gyro.at(0).toDouble();
-    sensDataPacket.gyro.y = gyro.at(1).toDouble();
-    sensDataPacket.gyro.z = gyro.at(2).toDouble();
-    if (list.size() == 1) return sensDataPacket;
+    sensPacket.gyro.x = gyro.at(0).toFloat();
+    sensPacket.gyro.y = gyro.at(1).toFloat();
+    sensPacket.gyro.z = gyro.at(2).toFloat();
+    if (list.size() == 1) return sensPacket;
     list = QStringList(list.back());
 
-    theta = QString(list.at(0)).replace(" ", "").split(del, QString::SkipEmptyParts);
-    sensDataPacket.theta.x = theta.at(0).toDouble();
-    sensDataPacket.theta.y = theta.at(1).toDouble();
-    sensDataPacket.theta.z = theta.at(2).toDouble();
+    ang = QString(list.at(0)).replace(" ", "").split(del, QString::SkipEmptyParts);
+    sensPacket.ang.x = ang.at(0).toFloat();
+    sensPacket.ang.y = ang.at(1).toFloat();
+    sensPacket.ang.z = ang.at(2).toFloat();
 
-    return sensDataPacket;
+    return sensPacket;
 }
 
 //-----------------------------------------------------------------------------
-SensDataPacket RacketSensorServer::processInPacket(const QString data)
+SensPacket RacketSensorServer::processInPacketEdisson(const QString data)
 {
     // Packet fromat:
-    // "s@TimeStamp@accX@accY@accZ@gyroX@gyroY@gyroZ@w@x@y@z@;"
+    // "s@TimeStamp@accX@accY@accZ@gyroX@gyroY@gyroZ@angX@angY@angZ@;"
 
-    SensDataPacket p;
+    SensPacket p;
 
     std::string packet = data.toStdString();
 
@@ -197,7 +209,7 @@ SensDataPacket RacketSensorServer::processInPacket(const QString data)
         }
     }
 
-    p.timeStamp = std::stod(p_vec.at(0));
+    p.t = std::stod(p_vec.at(0));
 
     p.acc.x = std::stof(p_vec.at(1));
     p.acc.y = std::stof(p_vec.at(2));
@@ -207,12 +219,16 @@ SensDataPacket RacketSensorServer::processInPacket(const QString data)
     p.gyro.y = std::stof(p_vec.at(5));
     p.gyro.z = std::stof(p_vec.at(6));
 
-    float q_w = std::stof(p_vec.at(7));
-    float q_x = std::stof(p_vec.at(8));
-    float q_y = std::stof(p_vec.at(9));
-    float q_z = std::stof(p_vec.at(10));
-    _quat2euler(q_w, q_x, q_y, q_z,
-                &(p.theta.x), &(p.theta.y), &(p.theta.z));
+    if (p_vec.size() == 10) {  // use euler angles
+        p.ang.x = std::stof(p_vec.at(7));
+        p.ang.y = std::stof(p_vec.at(8));
+        p.ang.z = std::stof(p_vec.at(9));
+    } else if (p_vec.size() == 11) {  // use quaternions
+        p.quat.w = std::stof(p_vec.at(7));
+        p.quat.x = std::stof(p_vec.at(8));
+        p.quat.y = std::stof(p_vec.at(9));
+        p.quat.z = std::stof(p_vec.at(10));
+    }
 
     return p;
 }

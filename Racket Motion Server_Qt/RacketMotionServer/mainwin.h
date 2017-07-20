@@ -30,7 +30,7 @@ class MainWin : public QMainWindow
 
 public slots:
     void showState(const QString);
-    void rcvSensData(const SensData sensData, const SensData fitData);
+    void rcvSensData(const SensBuffer sensData, const SensBuffer fitData);
     void portChanged();
     void fitWinLenChnged();
     void phoneSelected(int);
@@ -53,7 +53,7 @@ private:  // functions
     void _appendToPlot(QCustomPlot *plot, const double key, const double value,
                        std::vector<double> t, std::vector<double> fit,
                        const int scrollRange = 10);
-    void _updatePlots(const SensData sensData, const SensData fitData,
+    void _updatePlots(const SensBuffer sensData, const SensBuffer fitData,
                       const int scrollRange = 10);
 
 private:  // variables

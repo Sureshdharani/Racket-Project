@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define NUM_PACKETS 10000  // number of packets from sensro to safe
+#define BUFF_SIZE 1000  // sensor packets buffer size
 
 // Represents 3D vector
 struct Vec3D {
@@ -24,29 +24,48 @@ struct Vec3D {
     }
 };
 
-// Represents sensor data packet
-struct SensDataPacket {
-    double timeStamp = 0;
+// Represents 4D vector
+struct Vec4D {
+    float w = 0;
+    float x = 0;
+    float y = 0;
+    float z = 0;
 
-    Vec3D acc;
-    Vec3D gyro;
-    Vec3D theta;
+    QString toString(const char prec = 'f', const int numDigit = 6) {
+        QString str = "";
+        str.append("[W: " + QString::number(w, prec, numDigit) + "; ");
+        str.append("X: " + QString::number(x, prec, numDigit) + "; ");
+        str.append("Y: " + QString::number(y, prec, numDigit) + "; ");
+        str.append("Z: " + QString::number(z, prec, numDigit) + "]");
+        return str;
+    }
+};
+
+// Represents sensor data packet
+struct SensPacket {
+    double t = 0;  // time stamp
+
+    Vec3D acc;  // acceleration
+    Vec3D gyro; // gyroscope
+    Vec3D ang;  // orientation angle
+    Vec4D quat;  // quaternion
 
     QString toString(const char prec = 'f', const int numDigit = 6)
     {
         QString str;
         str.append("{");
-        str.append("timeStamp: " + QString::number(timeStamp, prec, numDigit) + "; ");
+        str.append("timeStamp: " + QString::number(t, prec, numDigit) + "; ");
         str.append("acc: " + acc.toString() + "; ");
         str.append("gyro: " + gyro.toString() + "; ");
-        str.append("theta: " + theta.toString());
+        str.append("ang: " + ang.toString());
+        str.append("quaternion: " + quat.toString());
         str.append("}");
         return str;
     }
 };
 
 // Sensor data FIFO:
-typedef std::deque<SensDataPacket> SensData;     // raw sensor data
+typedef std::deque<SensPacket> SensBuffer;     // raw sensor data buffer
 
 class RacketSensorServer : public QObject
 {
@@ -56,17 +75,18 @@ public:  // functions
     explicit RacketSensorServer(QObject *parent = 0,
                                 const quint16 Port = 5554);
 
+    // Processes packet from mobile app:
     // Packet format:
     // "90594.75079, 3,  -0.059,  0.098,  9.826, 4,  -0.000,  0.001,  0.001, 5,  16.191, 12.642,-34.497"
     // "92309.37615, 3,  -0.043,  0.033,  9.722, 4,  -0.001, -0.001, -0.001"
     // "92272.20973, 3,  -1.355, -0.098, 10.935"
-    SensDataPacket processInputPacket(const QString packet,
-                                      const SensDataPacket prevSensDataPacket);
+    SensPacket processInPacketMobile(const QString packet,
+                                      const SensPacket prevPacket);
 
-    // Process packet from edisson:
+    // Processes packet from edisson:
     // Packet fromat:
     // "s@TimeStamp@accX@accY@accZ@gyroX@gyroY@gyroZ@w@x@y@z@;"
-    SensDataPacket processInPacket(const QString data);
+    SensPacket processInPacketEdisson(const QString data);
 
 public:  // variables
     bool isEdisson;
@@ -80,7 +100,7 @@ public slots:
 
 signals:
     void sendState(const QString errorDescr);
-    void sendSensData(const SensData sensData, const SensData fitData);
+    void sendSensData(const SensBuffer sensData, const SensBuffer fitData);
 
 private:  // functions
     /* Fits the sensor data and returns new filled array
@@ -90,16 +110,17 @@ private:  // functions
      *  Return:
      *      Fitted sensor data
      */
-    SensData _fitSensData(const SensData data, const unsigned int N = 100);
+    SensBuffer _fitSensData(const SensBuffer data, const unsigned int N = 100);
     static void _quat2euler(const float q_w, const float q_x,
                             const float q_y, const float q_z,
                             float *t_x, float *t_y, float *t_z);
+    void _appendToBuffer(SensBuffer *sensData, const QString data);
 
 private:  // variables
 
     QUdpSocket* _socket;
-    SensData _sensData;    // raw sensor data
-    SensData _fitData;  // fitted sensor data
+    SensBuffer _sensData;    // raw sensor data
+    SensBuffer _fitData;  // fitted sensor data
 };
 
 #endif // RACKETSENSORCLIENT_H
