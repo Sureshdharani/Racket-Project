@@ -65,6 +65,7 @@ struct ClientSettings {
     unsigned int measWaitTime = 2000;
     bool isCmdPrint = false;
     bool isLog = false;
+    bool isSend = true;
 };
 
 MPU9250 mpu;
@@ -342,6 +343,7 @@ void printUsage() {
     << endl;
     cout << "\t\t-log - measurement data log (typical off)" << endl;
     cout << "\t\t-cmdprint - printig to cmd (typical off)" << endl;
+    cout << "\t\t-send - sending over UDP (typical on)" << endl;
     cout << endl;
 }
 
@@ -369,10 +371,20 @@ CmdParserOut parseCommandLineArgs(const char* argv[], int argc,
         } else if (s == "-log") {
             if (args.at(i) == "on") {
                 settings->isLog = true;
+            } else if (args.at(i) == "off") {
+                settings->isLog = false;
             }
         } else if (s == "-cmdprint") {
             if (args.at(i) == "on") {
                 settings->isCmdPrint = true;
+            } else if (args.at(i) == "off") {
+                settings->isCmdPrint = false;
+            }
+        } else if (s == "-send") {
+            if (args.at(i) == "on") {
+                settings->isSend = true;
+            } else if (args.at(i) == "off") {
+                settings->isSend = false;
             }
         } else {  // wrong parameter
             parserOut.isValid = false;
@@ -483,6 +495,7 @@ int main(int argc, const char* argv[]) {
     cout << "\tMeasurement waiting time: " << set.measWaitTime << endl;
     cout << "\tLogging: " << set.isLog << endl;
     cout << "\tCmd Print: " << set.isCmdPrint << endl;
+    cout << "\tUDP Sending: " << set.isSend << endl;
     cout << "------------------------------------------------" << endl;
 
     try {
@@ -507,7 +520,7 @@ int main(int argc, const char* argv[]) {
             if (set.isLog)
                 someLogRec.push_back(Mp);
 
-            if (Buffer_count >= Buffer_size) {
+            if (Buffer_count >= Buffer_size && set.isSend) {
                 t1 = std::chrono::high_resolution_clock::now();
                 SendUDP(someRec, set);
 
