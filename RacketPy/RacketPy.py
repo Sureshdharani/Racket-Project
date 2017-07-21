@@ -559,8 +559,8 @@ def main():
 
     rec = {'id': 0, 't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
     recs = []  # records
-    for i in range(26, N-2):
-        rec['id'] = i
+    for i in range(N):
+        rec['id'] = i+1
         rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
             readDataLog(fileName + str(i+1) + ext)
         # deepcopy since else all records will be same
