@@ -42,6 +42,25 @@ def encodeRecord(record):
 
 
 # -----------------------------------------------------------------------------
+def readScores(fName):
+    """
+    Reads scores of data set
+    """
+    file = open(fName, "r")
+    scores = file.readlines()
+    file.close()
+    score = {'id': 0, 'score': 0}
+    d = '\t'
+    scores = [s.strip().split(d) for s in scores]
+    scrs = []
+    for s in scores:
+        score['id'] = float(s[0])
+        score['score'] = float(s[1])
+        scrs.append(cp.deepcopy(score))
+    return scrs
+
+
+# -----------------------------------------------------------------------------
 def readDataLog(fileName):
     """
     Reads data log file.
@@ -553,19 +572,25 @@ def main():
 
     >>> main()
     """
+
+    # Read scores:
+    fName = './DataSets/train/Labels.txt'
+    scrs = readScores(fName)
+
     fileName = './DataSets/train/DataLog'
     ext = '.txt'  # extension
     N = 29  # number of files
 
-    rec = {'id': 0, 't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
+    rec = {'id': 0, 'score': 0,
+           't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
     recs = []  # records
     for i in range(N):
         rec['id'] = i+1
+        rec['score'] = scrs[i]['score']
         rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
             readDataLog(fileName + str(i+1) + ext)
         # deepcopy since else all records will be same
         recs.append(cp.deepcopy(rec))
-    print(len(recs), recs[0]['id'])
 
     """
     # Delete bad datasets:
