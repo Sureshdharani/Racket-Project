@@ -418,6 +418,33 @@ def createResidual(accXOpt, accYOpt, accZOpt, gyroXOpt, gyroYOpt, gyroZOpt,
 
 
 # -----------------------------------------------------------------------------
+def extractResidual(x):
+    """
+    Creates residual (one line) of residual matrix X
+
+    >>> x = [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 21.0, 22.0, \
+             23.0, 24.0, 41.0, 42.0, 43.0, 44.0, 51.0, 52.0, 53.0, \
+             54.0, 55.0, 56.0, 57.0, 81.0, 82.0, 83.0, 84.0]
+    # >>> accXO = [11, 12, 13, 14, 15, 16, 17]
+    # >>> accYO = [21, 22, 23, 24]
+    # >>> gyroXO = [41, 42, 43, 44]
+    # >>> gyroYO = [51, 52, 53, 54, 55, 56, 57]
+    # >>> angYO = [81, 82, 83, 84]
+    >>> raccXO, raccYO, rgyroXO, rgyroYO, rangYO = createResidual(x)
+    >>> raccXO
+    0.0
+    """
+    accXOpt = []
+    accYOpt = []
+
+    gyroXOpt = []
+    gyroYOpt = []
+
+    angYOpt = []
+    return accXOpt, accYOpt, gyroXOpt, gyroYOpt, angYOpt
+
+
+# -----------------------------------------------------------------------------
 def createFMtrx(recs):
     """
     Creates feauture matrix as from options
