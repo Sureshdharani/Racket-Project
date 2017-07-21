@@ -195,6 +195,30 @@ def cutRecord(rec, idxL, idxR):
 
 
 # -----------------------------------------------------------------------------
+def cutRecords(recs):
+    """
+    Cuts all the records in the record list to same number of samples.
+    """
+    t_min = []
+    t_max = []
+
+    # Find minimal and maximal time values over all records:
+    for r in recs:
+        t_min.append(np.min(r['t'], axis=0))
+        t_max.append(np.max(r['t'], axis=0))
+
+    # Left and right time cut points:
+    t_L = np.max(t_min)
+    t_R = np.min(t_max)
+
+    # Find indexes of left/right time points in every record and cut them:
+    for r in recs:
+        idxL = np.max(np.argwhere(r['t'] <= t_L).T[0])
+        idxR = np.min(np.argwhere(r['t'] >= t_R).T[0])
+        cutRecord(r, idxL, idxR)
+
+
+# -----------------------------------------------------------------------------
 def main():
     """
     Main function.
@@ -218,23 +242,7 @@ def main():
     centerRecords(recs)
 
     # Cut datasets:
-    t_min = []
-    t_max = []
-
-    # Find minimal and maximal time values over all records:
-    for r in recs:
-        t_min.append(np.min(r['t'], axis=0))
-        t_max.append(np.max(r['t'], axis=0))
-
-    # Left and right time cut points:
-    t_L = np.max(t_min)
-    t_R = np.min(t_max)
-
-    # Find indexes of left/right time points in every record and cut them:
-    for r in recs:
-        idxL = np.max(np.argwhere(r['t'] <= t_L).T[0])
-        idxR = np.min(np.argwhere(r['t'] >= t_R).T[0])
-        cutRecord(r, idxL, idxR)
+    cutRecords(recs)
 
     # Plot datasets:
     for r in recs:
