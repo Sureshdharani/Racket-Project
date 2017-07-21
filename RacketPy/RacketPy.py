@@ -6,6 +6,7 @@ RacketPy
 Alexander Kozhinov <AlexanderKozhinov@yandex.com>
 """
 
+import copy as cp
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -76,16 +77,16 @@ def readDataLog(fileName):
 
 
 # -----------------------------------------------------------------------------
-def plotData(t, acc, gyro, ang, fig, s=0.75, scatter=True, fontsize=10):
+def plotData(t, acc, gyro, ang, fig, s=0.75, lw=1, scatter=True, fontsize=10):
     """
     Plots logged data.
 
-    >>> fileName = './DataSets/DataLog1.txt'
-    >>> t, acc, gyro, ang = readDataLog(fileName)
-    >>> fig1 = plt.figure()
-    >>> plotData(t, acc, gyro, ang, fig=fig1, s=2, scatter=True)
-    >>> acc = acc - 1
-    >>> plotData(t, acc, gyro, ang, fig=fig1, s=2, scatter=True)
+    # >>> fileName = './DataSets/DataLog1.txt'
+    # >>> t, acc, gyro, ang = readDataLog(fileName)
+    # >>> fig1 = plt.figure()
+    # >>> plotData(t, acc, gyro, ang, fig=fig1, s=2, scatter=True)
+    # >>> acc = acc - 1
+    # >>> plotData(t, acc, gyro, ang, fig=fig1, s=2, scatter=True)
     # >>> plt.show()
     """
 
@@ -106,13 +107,13 @@ def plotData(t, acc, gyro, ang, fig, s=0.75, scatter=True, fontsize=10):
         plt.scatter(t, acc[:, 2], s=s)
         plt.ylabel('a_z, m/s^2', fontsize=fontSz)
     else:
-        plt.plot(t, acc[:, 0])
+        plt.plot(t, acc[:, 0], linewidth=lw)
         plt.ylabel('a_x, m/s^2', fontsize=fontSz)
         axs.append(plt.subplot(334))
-        plt.plot(t, acc[:, 1])
+        plt.plot(t, acc[:, 1], linewidth=lw)
         plt.ylabel('a_y, m/s^2', fontsize=fontSz)
         axs.append(plt.subplot(337))
-        plt.plot(t, acc[:, 2])
+        plt.plot(t, acc[:, 2], linewidth=lw)
         plt.ylabel('a_z, m/s^2', fontsize=fontSz)
 
     # Plot angular speeds:
@@ -128,13 +129,13 @@ def plotData(t, acc, gyro, ang, fig, s=0.75, scatter=True, fontsize=10):
         plt.scatter(t, gyro[:, 2], s=s)
         plt.ylabel('w_z, °/s', fontsize=fontSz)
     else:
-        plt.plot(t, gyro[:, 0])
+        plt.plot(t, gyro[:, 0], linewidth=lw)
         plt.ylabel('w_x, °/s', fontsize=fontSz)
         axs.append(plt.subplot(335))
-        plt.plot(t, gyro[:, 1])
+        plt.plot(t, gyro[:, 1], linewidth=lw)
         plt.ylabel('w_y, °/s', fontsize=fontSz)
         axs.append(plt.subplot(338))
-        plt.plot(t, gyro[:, 2])
+        plt.plot(t, gyro[:, 2], linewidth=lw)
         plt.ylabel('w_z, °/s', fontsize=fontSz)
 
     # Plot orientations:
@@ -150,13 +151,13 @@ def plotData(t, acc, gyro, ang, fig, s=0.75, scatter=True, fontsize=10):
         plt.scatter(t, ang[:, 2], s=s)
         plt.ylabel('w_z, °/s', fontsize=fontSz)
     else:
-        plt.plot(t, ang[:, 0])
+        plt.plot(t, ang[:, 0], linewidth=lw)
         plt.ylabel('w_x, °/s', fontsize=fontSz)
         axs.append(plt.subplot(336))
-        plt.plot(t, ang[:, 1])
+        plt.plot(t, ang[:, 1], linewidth=lw)
         plt.ylabel('w_y, °/s', fontsize=fontSz)
         axs.append(plt.subplot(339))
-        plt.plot(t, ang[:, 2])
+        plt.plot(t, ang[:, 2], linewidth=lw)
         plt.ylabel('w_z, °/s', fontsize=fontSz)
 
     # Update tick font size of axises:
@@ -166,11 +167,80 @@ def plotData(t, acc, gyro, ang, fig, s=0.75, scatter=True, fontsize=10):
 
 
 # -----------------------------------------------------------------------------
+def centerRecords(recs):
+    """
+    Centers the datasets
+    """
+    for i in range(len(recs) - 1):
+        # Current and previos idx of min of accX:
+        accXMinIdx = np.argmin(recs[i]['acc'], axis=0)[0]
+        accXMinNextIdx = np.argmin(recs[i+1]['acc'], axis=0)[0]
+        t_shift = recs[i+1]['t'][accXMinNextIdx] - recs[i]['t'][accXMinIdx]
+        if t_shift < 0:
+            t_shift = (-1.0) * t_shift
+        elif t_shift > 0:
+            t_shift = (1.0) * t_shift
+        recs[i+1]['t'] = recs[i+1]['t'] + t_shift
+
+
+# -----------------------------------------------------------------------------
+def cutRecord(rec, idxL, idxR):
+    """
+    Cuts the record by left index idxL and right index idxR
+    """
+    rec['t'] = rec['t'][idxL:idxR]
+    rec['acc'] = rec['acc'][idxL:idxR]
+    rec['gyro'] = rec['gyro'][idxL:idxR]
+    rec['ang'] = rec['ang'][idxL:idxR]
+
+
+# -----------------------------------------------------------------------------
 def main():
     """
     Main function.
+
+    >>> main()
     """
-    pass
+    fileName = './DataSets/DataLog'
+    ext = '.txt'  # extension
+    N = 8  # number of files
+
+    fig = plt.figure()
+    rec = {'t': [], 'acc': [], 'gyro': [], 'ang': []}  # record
+    recs = []  # records
+    for i in range(N):
+        rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
+            readDataLog(fileName + str(i+1) + ext)
+        # deepcopy since else all records will be same
+        recs.append(cp.deepcopy(rec))
+
+    # Center datasets:
+    centerRecords(recs)
+
+    # Cut datasets:
+    t_min = []
+    t_max = []
+
+    # Find minimal and maximal time values over all records:
+    for r in recs:
+        t_min.append(np.min(r['t'], axis=0))
+        t_max.append(np.max(r['t'], axis=0))
+
+    # Left and right time cut points:
+    t_L = np.max(t_min)
+    t_R = np.min(t_max)
+
+    # Find indexes of left/right time points in every record and cut them:
+    for r in recs:
+        idxL = np.max(np.argwhere(r['t'] <= t_L).T[0])
+        idxR = np.min(np.argwhere(r['t'] >= t_R).T[0])
+        cutRecord(r, idxL, idxR)
+
+    # Plot datasets:
+    for r in recs:
+        plotData(r['t'], r['acc'], r['gyro'], r['ang'], fig=fig,
+                 s=0.5, lw=0.75, scatter=False)
+    plt.show()
 
 
 # -----------------------------------------------------------------------------
