@@ -425,22 +425,25 @@ def extractResidual(x):
     >>> x = [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 21.0, 22.0, \
              23.0, 24.0, 41.0, 42.0, 43.0, 44.0, 51.0, 52.0, 53.0, \
              54.0, 55.0, 56.0, 57.0, 81.0, 82.0, 83.0, 84.0]
-    # >>> accXO = [11, 12, 13, 14, 15, 16, 17]
-    # >>> accYO = [21, 22, 23, 24]
-    # >>> gyroXO = [41, 42, 43, 44]
-    # >>> gyroYO = [51, 52, 53, 54, 55, 56, 57]
-    # >>> angYO = [81, 82, 83, 84]
-    >>> raccXO, raccYO, rgyroXO, rgyroYO, rangYO = createResidual(x)
-    >>> raccXO
-    0.0
+    >>> accXO, accYO, gyroXO, gyroYO, angYO = extractResidual(x)
+    >>> accXO
+    [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0]
+    >>> accYO
+    [21.0, 22.0, 23.0, 24.0]
+    >>> gyroXO
+    [41.0, 42.0, 43.0, 44.0]
+    >>> gyroYO
+    [51.0, 52.0, 53.0, 54.0, 55.0, 56.0, 57.0]
+    >>> angYO
+    [81.0, 82.0, 83.0, 84.0]
     """
-    accXOpt = []
-    accYOpt = []
+    accXOpt = x[0:7]
+    accYOpt = x[7:11]
 
-    gyroXOpt = []
-    gyroYOpt = []
+    gyroXOpt = x[11:15]
+    gyroYOpt = x[15:22]
 
-    angYOpt = []
+    angYOpt = x[22::]
     return accXOpt, accYOpt, gyroXOpt, gyroYOpt, angYOpt
 
 
@@ -518,32 +521,29 @@ def plotRecordsFit(recs, X, fig, linewidth=0.5):
         t = r['t'][:, 0]
 
         # Extract otions from residuals:
-        # print(X[i])
-        pass
+        accXOpt, accYOpt, gyroXOpt, gyroYOpt, angYOpt = extractResidual(X[i])
 
         # Plot record's fit:
-        """
         plt.subplot(331)
         plt.plot(t, gauss2b(t, *accXOpt), 'r-', linewidth=linewidth)
         plt.subplot(334)
         plt.plot(t, gauss1b(t, *accYOpt), 'r-', linewidth=linewidth)
-        plt.subplot(337)
-        plt.plot(t, gauss2b(t, *accZOpt), 'r-', linewidth=linewidth)
+        # plt.subplot(337)
+        # plt.plot(t, gauss2b(t, *accZOpt), 'r-', linewidth=linewidth)
 
         plt.subplot(332)
         plt.plot(t, gauss1b(t, *gyroXOpt), 'r-', linewidth=linewidth)
         plt.subplot(335)
         plt.plot(t, gauss2b(t, *gyroYOpt), 'r-', linewidth=linewidth)
-        plt.subplot(338)
-        plt.plot(t, gauss1b(t, *gyroZOpt), 'r-', linewidth=linewidth)
+        # plt.subplot(338)
+        # plt.plot(t, gauss1b(t, *gyroZOpt), 'r-', linewidth=linewidth)
 
-        plt.subplot(333)
-        plt.plot(t, gauss2b(t, *angXOpt), 'r-', linewidth=linewidth)
+        # plt.subplot(333)
+        # plt.plot(t, gauss2b(t, *angXOpt), 'r-', linewidth=linewidth)
         plt.subplot(336)
         plt.plot(t, gauss1b(t, *angYOpt), 'r-', linewidth=linewidth)
-        plt.subplot(339)
-        plt.plot(t, gauss1b(t, *angZOpt), 'r-', linewidth=linewidth)
-        """
+        # plt.subplot(339)
+        # plt.plot(t, gauss1b(t, *angZOpt), 'r-', linewidth=linewidth)
 
 
 # -----------------------------------------------------------------------------
