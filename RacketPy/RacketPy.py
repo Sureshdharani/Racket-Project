@@ -559,8 +559,7 @@ def main():
 
     rec = {'id': 0, 't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
     recs = []  # records
-    n = 21
-    for i in range(N-n-1, N-n):
+    for i in range(N):
         rec['id'] = i+1
         rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
             readDataLog(fileName + str(i+1) + ext)
