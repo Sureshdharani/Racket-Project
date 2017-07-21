@@ -385,6 +385,141 @@ def fitGauss1b(x, y, s_max=1000, dmu=20):
 
 
 # -----------------------------------------------------------------------------
+def createResidual(accXOpt, accYOpt, accZOpt, gyroXOpt, gyroYOpt, gyroZOpt,
+                   angXOpt, angYOpt, angZOpt):
+    """
+    Creates residual (one line) of residual matrix X
+
+    >>> accXO = [11, 12, 13, 14, 15, 16, 17]
+    >>> accYO = [21, 22, 23, 24]
+    >>> accZO = [31, 32, 33, 34, 35, 36, 37]
+    >>> gyroXO = [41, 42, 43, 44]
+    >>> gyroYO = [51, 52, 53, 54, 55, 56, 57]
+    >>> gyroZO = [61, 62, 63, 64]
+    >>> angXO = [71, 72, 73, 74, 75, 76, 77]
+    >>> angYO = [81, 82, 83, 84]
+    >>> angZO = [91, 92, 93, 94]
+    >>> r = createResidual(accXO, accYO, accZO, \
+                           gyroXO, gyroYO, gyroZO, \
+                           angXO, angYO, angZO)
+    >>> ret = [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 21.0, 22.0, \
+               23.0, 24.0, 41.0, 42.0, 43.0, 44.0, 51.0, 52.0, 53.0, \
+               54.0, 55.0, 56.0, 57.0, 81.0, 82.0, 83.0, 84.0]
+    >>> sum(np.array(ret) - np.array(r))
+    0.0
+    """
+    res = []
+    res = np.append(res, accXOpt, axis=0)
+    res = np.append(res, accYOpt, axis=0)
+    res = np.append(res, gyroXOpt, axis=0)
+    res = np.append(res, gyroYOpt, axis=0)
+    res = np.append(res, angYOpt, axis=0)
+    return list(res)
+
+
+# -----------------------------------------------------------------------------
+def createFMtrx(recs):
+    """
+    Creates feauture matrix as from options
+    """
+    X = []
+
+    """
+    accXOpt = []
+    accXOpt = []
+    accXOpt = []
+
+    gyroXOpt = []
+    gyroXOpt = []
+    gyroXOpt = []
+
+    angXOpt = []
+    angXOpt = []
+    angXOpt = []
+    """
+
+    for r in recs:
+        t = r['t'][:, 0]
+        # Fit record:
+        accXOpt = fitGauss2b(t, r['acc'][:, 0], s_max=1000, dmu=20)
+        accYOpt = fitGauss1b(t, r['acc'][:, 1], s_max=1000, dmu=20)
+        accZOpt = fitGauss2b(t, r['acc'][:, 2], s_max=1000, dmu=20)
+
+        gyroXOpt = fitGauss1b(t, r['gyro'][:, 0], s_max=1000, dmu=20)
+        gyroYOpt = fitGauss2b(t, r['gyro'][:, 1], s_max=1000, dmu=20)
+        gyroZOpt = fitGauss1b(t, r['gyro'][:, 2], s_max=1000, dmu=20)
+
+        angXOpt = fitGauss2b(t, r['ang'][:, 0], s_max=1000, dmu=20)
+        angYOpt = fitGauss1b(t, r['ang'][:, 1], s_max=1000, dmu=20)
+        angZOpt = fitGauss1b(t, r['ang'][:, 2], s_max=1000, dmu=20)
+
+        # Create residual matrix with records:
+        x = createResidual(accXOpt, accYOpt, accZOpt,
+                           gyroXOpt, gyroYOpt, gyroZOpt,
+                           angXOpt, angYOpt, angZOpt)
+        X.append(x)
+
+    """
+    print("i: np.shape(X) =", np.shape(X))
+    print("i: type(X): ", type(X))
+    print("i: X:\n", X)
+    print("-------------")
+    print("accXOpt: %s * \n%s" % (len(accXOpt), accXOpt))
+    print("accYOpt: %s * \n%s" % (len(accYOpt), accYOpt))
+    print("accZOpt: %s\n%s" % (len(accZOpt), accZOpt))
+
+    print("gyroXOpt: %s * \n%s" % (len(gyroXOpt), gyroXOpt))
+    print("gyroYOpt: %s * \n%s" % (len(gyroYOpt), gyroYOpt))
+    print("gyroZOpt: %s\n%s" % (len(gyroZOpt), gyroZOpt))
+
+    print("angXOpt: %s * \n%s" % (len(gyroXOpt), gyroXOpt))
+    print("angYOpt: %s\n%s" % (len(gyroYOpt), gyroYOpt))
+    print("angZOpt: %s\n%s" % (len(gyroZOpt), gyroZOpt))
+    """
+
+    return np.array(X)
+
+
+# -----------------------------------------------------------------------------
+def plotRecordsFit(recs, X, fig, linewidth=0.5):
+    """
+    Plots fit of records in existing figure
+    """
+
+    for i, r in enumerate(recs):
+        # Time vector
+        t = r['t'][:, 0]
+
+        # Extract otions from residuals:
+        # print(X[i])
+        pass
+
+        # Plot record's fit:
+        """
+        plt.subplot(331)
+        plt.plot(t, gauss2b(t, *accXOpt), 'r-', linewidth=linewidth)
+        plt.subplot(334)
+        plt.plot(t, gauss1b(t, *accYOpt), 'r-', linewidth=linewidth)
+        plt.subplot(337)
+        plt.plot(t, gauss2b(t, *accZOpt), 'r-', linewidth=linewidth)
+
+        plt.subplot(332)
+        plt.plot(t, gauss1b(t, *gyroXOpt), 'r-', linewidth=linewidth)
+        plt.subplot(335)
+        plt.plot(t, gauss2b(t, *gyroYOpt), 'r-', linewidth=linewidth)
+        plt.subplot(338)
+        plt.plot(t, gauss1b(t, *gyroZOpt), 'r-', linewidth=linewidth)
+
+        plt.subplot(333)
+        plt.plot(t, gauss2b(t, *angXOpt), 'r-', linewidth=linewidth)
+        plt.subplot(336)
+        plt.plot(t, gauss1b(t, *angYOpt), 'r-', linewidth=linewidth)
+        plt.subplot(339)
+        plt.plot(t, gauss1b(t, *angZOpt), 'r-', linewidth=linewidth)
+        """
+
+
+# -----------------------------------------------------------------------------
 def main():
     """
     Main function.
@@ -423,65 +558,13 @@ def main():
     # Save record:
     saveRecord(recs[0], "./SomeRecord.txt")
 
-    # Fit and plot records:
+    # Fit records:
+    X = createFMtrx(recs)
+    print("X.shape() =", np.shape(X))
+
+    # Plot fitted records
     fig = plt.figure()
-    lineW = 1
-    X = []
-    for r in recs:
-        # Fit record:
-        accXOpt = fitGauss2b(r['t'][:, 0], r['acc'][:, 0],
-                             s_max=1000, dmu=20)
-        accYOpt = fitGauss1b(r['t'][:, 0], r['acc'][:, 1],
-                             s_max=1000, dmu=20)
-        accZOpt = fitGauss2b(r['t'][:, 0], r['acc'][:, 2],
-                             s_max=1000, dmu=20)
-
-        gyroXOpt = fitGauss1b(r['t'][:, 0], r['gyro'][:, 0],
-                              s_max=1000, dmu=20)
-        gyroYOpt = fitGauss2b(r['t'][:, 0], r['gyro'][:, 1],
-                              s_max=1000, dmu=20)
-        gyroZOpt = fitGauss1b(r['t'][:, 0], r['gyro'][:, 2],
-                              s_max=1000, dmu=20)
-
-        angXOpt = fitGauss1b(r['t'][:, 0], r['ang'][:, 0],
-                             s_max=1000, dmu=20)
-        angYOpt = fitGauss2b(r['t'][:, 0], r['ang'][:, 1],
-                             s_max=1000, dmu=20)
-        angZOpt = fitGauss1b(r['t'][:, 0], r['ang'][:, 2],
-                             s_max=1000, dmu=20)
-
-        # Create residual matrix with records:
-
-        # Plot record:
-        plt.subplot(331)
-        plt.plot(r['t'][:, 0], gauss2b(r['t'][:, 0], *accXOpt), 'r-',
-                 label='fit-with-bounds', linewidth=lineW)
-        plt.subplot(334)
-        plt.plot(r['t'][:, 0], gauss1b(r['t'][:, 0], *accYOpt), 'r-',
-                 label='fit-with-bounds', linewidth=lineW)
-        plt.subplot(337)
-        plt.plot(r['t'][:, 0], gauss2b(r['t'][:, 0], *accZOpt), 'r-',
-                 label='fit-with-bounds', linewidth=lineW)
-
-        plt.subplot(332)
-        plt.plot(r['t'][:, 0], gauss1b(r['t'][:, 0], *gyroXOpt), 'r-',
-                 label='fit-with-bounds', linewidth=lineW)
-        plt.subplot(335)
-        plt.plot(r['t'][:, 0], gauss2b(r['t'][:, 0], *gyroYOpt), 'r-',
-                 label='fit-with-bounds', linewidth=lineW)
-        plt.subplot(338)
-        plt.plot(r['t'][:, 0], gauss1b(r['t'][:, 0], *gyroZOpt), 'r-',
-                 label='fit-with-bounds', linewidth=lineW)
-
-        plt.subplot(333)
-        plt.plot(r['t'][:, 0], gauss1b(r['t'][:, 0], *angXOpt), 'r-',
-                 label='fit-with-bounds', linewidth=lineW)
-        plt.subplot(336)
-        plt.plot(r['t'][:, 0], gauss2b(r['t'][:, 0], *angYOpt), 'r-',
-                 label='fit-with-bounds', linewidth=lineW)
-        plt.subplot(339)
-        plt.plot(r['t'][:, 0], gauss1b(r['t'][:, 0], *angZOpt), 'r-',
-                 label='fit-with-bounds', linewidth=lineW)
+    plotRecordsFit(recs, X, fig=fig, linewidth=0.5)
 
     # Plot datasets:
     for r in recs:
