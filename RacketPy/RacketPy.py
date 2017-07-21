@@ -433,6 +433,8 @@ def main():
                               s_max=1000, dmu=20)
         angZOpt = fitGauss1b(r['t'][:, 0], r['ang'][:, 2],
                               s_max=1000, dmu=20)
+
+        # Create residual matrix with records:
         
         # Plot record:
         plt.subplot(331)
