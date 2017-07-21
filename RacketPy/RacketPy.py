@@ -559,12 +559,14 @@ def main():
 
     rec = {'id': 0, 't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
     recs = []  # records
-    for i in range(N):
+    n = 21
+    for i in range(N-n-1, N-n):
         rec['id'] = i+1
         rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
             readDataLog(fileName + str(i+1) + ext)
         # deepcopy since else all records will be same
         recs.append(cp.deepcopy(rec))
+    print(len(recs), recs[0]['id'])
 
     """
     # Delete bad datasets:
@@ -580,10 +582,10 @@ def main():
     centerRecords(recs)
 
     # Cut datasets:
-    cutRecords(recs, nL=0, nR=0)
+    # cutRecords(recs, nL=0, nR=0)
 
     # Save record:
-    saveRecord(recs[0], "./SomeRecord.txt")
+    # saveRecord(recs[0], "./SomeRecord.txt")
 
     # Fit records:
     X = createFMtrx(recs)
