@@ -555,11 +555,11 @@ def main():
     """
     fileName = './DataSets/train/DataLog'
     ext = '.txt'  # extension
-    N = 8  # number of files
+    N = 29  # number of files
 
     rec = {'id': 0, 't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
     recs = []  # records
-    for i in range(N):
+    for i in range(26, N-2):
         rec['id'] = i
         rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
             readDataLog(fileName + str(i+1) + ext)
@@ -580,14 +580,13 @@ def main():
     centerRecords(recs)
 
     # Cut datasets:
-    cutRecords(recs, nL=100, nR=0)
+    cutRecords(recs, nL=0, nR=0)
 
     # Save record:
     saveRecord(recs[0], "./SomeRecord.txt")
 
     # Fit records:
     X = createFMtrx(recs)
-    print("X.shape() =", np.shape(X))
 
     # Plot fitted records
     fig = plt.figure()
