@@ -225,7 +225,7 @@ def cutRecords(recs, nL=0, nR=0):
 
 
 # -----------------------------------------------------------------------------
-def safeRecord(record, fileName):
+def saveRecord(record, fileName):
     """
     Saves record to file
     """
@@ -346,7 +346,7 @@ def fitGauss1b(x, y, s_max=1000, dmu=20):
     """
     Fit one dimensional Gaussian with offset
     """
-        # Provide mean free data:
+    # Provide mean free data:
     offset = np.mean(y)
     y = y - offset
 
@@ -383,6 +383,7 @@ def fitGauss1b(x, y, s_max=1000, dmu=20):
     """
     return popt
 
+
 # -----------------------------------------------------------------------------
 def main():
     """
@@ -394,13 +395,24 @@ def main():
     ext = '.txt'  # extension
     N = 8  # number of files
 
-    rec = {'t': [], 'acc': [], 'gyro': [], 'ang': []}  # record
+    rec = {'id': 0, 't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
     recs = []  # records
     for i in range(N):
+        rec['id'] = i
         rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
             readDataLog(fileName + str(i+1) + ext)
         # deepcopy since else all records will be same
         recs.append(cp.deepcopy(rec))
+
+    """
+    # Delete bad datasets:
+    del recs[7]
+    del recs[6]
+    del recs[0]
+
+    goodIds = [r['id'] for r in recs]
+    print(goodIds)
+    """
 
     # Center datasets:
     centerRecords(recs)
@@ -408,9 +420,13 @@ def main():
     # Cut datasets:
     cutRecords(recs, nL=100, nR=0)
 
+    # Save record:
+    saveRecord(recs[0], "./SomeRecord.txt")
+
     # Fit and plot records:
     fig = plt.figure()
     lineW = 1
+    X = []
     for r in recs:
         # Fit record:
         accXOpt = fitGauss2b(r['t'][:, 0], r['acc'][:, 0],
@@ -424,18 +440,18 @@ def main():
                               s_max=1000, dmu=20)
         gyroYOpt = fitGauss2b(r['t'][:, 0], r['gyro'][:, 1],
                               s_max=1000, dmu=20)
-        gyroZOpt = fitGauss2b(r['t'][:, 0], r['gyro'][:, 2],
+        gyroZOpt = fitGauss1b(r['t'][:, 0], r['gyro'][:, 2],
                               s_max=1000, dmu=20)
 
         angXOpt = fitGauss1b(r['t'][:, 0], r['ang'][:, 0],
-                              s_max=1000, dmu=20)
+                             s_max=1000, dmu=20)
         angYOpt = fitGauss2b(r['t'][:, 0], r['ang'][:, 1],
-                              s_max=1000, dmu=20)
+                             s_max=1000, dmu=20)
         angZOpt = fitGauss1b(r['t'][:, 0], r['ang'][:, 2],
-                              s_max=1000, dmu=20)
+                             s_max=1000, dmu=20)
 
         # Create residual matrix with records:
-        
+
         # Plot record:
         plt.subplot(331)
         plt.plot(r['t'][:, 0], gauss2b(r['t'][:, 0], *accXOpt), 'r-',
@@ -454,7 +470,7 @@ def main():
         plt.plot(r['t'][:, 0], gauss2b(r['t'][:, 0], *gyroYOpt), 'r-',
                  label='fit-with-bounds', linewidth=lineW)
         plt.subplot(338)
-        plt.plot(r['t'][:, 0], gauss2b(r['t'][:, 0], *gyroZOpt), 'r-',
+        plt.plot(r['t'][:, 0], gauss1b(r['t'][:, 0], *gyroZOpt), 'r-',
                  label='fit-with-bounds', linewidth=lineW)
 
         plt.subplot(333)
