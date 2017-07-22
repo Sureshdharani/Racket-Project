@@ -10,6 +10,7 @@ import copy as cp
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
 
 # -----------------------------------------------------------------------------
@@ -94,6 +95,32 @@ def readDataLog(fileName):
     ang = np.rad2deg(ang)
 
     return t, acc, gyro, ang
+
+
+# -----------------------------------------------------------------------------
+def readDataSet(recordsFileName, labelsFileName, numfiles=1):
+    """
+    Reads consecutive files to good and bad records.
+    """
+    # Read scores:
+    scrs = readScores(labelsFileName)
+
+    ext = '.txt'  # extension
+    rec = {'id': 0, 'score': 0,
+           't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
+    grecs = []  # good records
+    brecs = []  # bad records
+    for i in range(numfiles):
+        rec['id'] = i+1
+        rec['score'] = scrs[i]['score']
+        rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
+            readDataLog(recordsFileName + str(i+1) + ext)
+        # deepcopy since else all records will be same
+        if rec['score'] > 0:  # good score
+            grecs.append(cp.deepcopy(rec))
+        else:
+            brecs.append(cp.deepcopy(rec))
+    return grecs, brecs, scrs
 
 
 # -----------------------------------------------------------------------------
@@ -590,6 +617,7 @@ def trimSize(recs, L=0):
 # -----------------------------------------------------------------------------
 def appendRecord(dest, source):
     """
+    Apends source records set to destination records set
     """
     for r in source:
         dest.append(cp.deepcopy(r))
@@ -629,31 +657,14 @@ def main(stateprint=False):
         print("***** START *****")
         print("\t* Reading datasets...")
 
-    # Read scores:
-    fName = './DataSets/train/Labels.txt'
-    scrs = readScores(fName)
-
-    fileName = './DataSets/train/DataLog'
-    ext = '.txt'  # extension
-    N = 29  # number of files
-
+    # Reading test data set
     if stateprint:
-        print("\t* Creating records...")
-
-    rec = {'id': 0, 'score': 0,
-           't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
-    grecs = []  # good records
-    brecs = []  # bad records
-    for i in range(N):
-        rec['id'] = i+1
-        rec['score'] = scrs[i]['score']
-        rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
-            readDataLog(fileName + str(i+1) + ext)
-        # deepcopy since else all records will be same
-        if rec['score'] > 0:  # good score
-            grecs.append(cp.deepcopy(rec))
-        else:
-            brecs.append(cp.deepcopy(rec))
+        print("\t* Reading records...")
+    trainSetFileName = './DataSets/train/DataLog'
+    labelsFileName = './DataSets/train/Labels.txt'
+    Ntrain = 29  # number of trian files
+    grecs, brecs, scrs = readDataSet(trainSetFileName,
+                                     labelsFileName, numfiles=Ntrain)
 
     # Center good/bad records:
     if stateprint:
@@ -684,13 +695,24 @@ def main(stateprint=False):
         print("\t* Fitting records...")
     X, y = createFMtrx(recs)
 
-    # Create classifier:
+    # Create classifier and train int on test data set:
     # print(X)
+    clf = LDA(n_components=None, priors=None, shrinkage=None,
+              solver='svd', store_covariance=True, tol=0.01).fit(X, y)
+    # score_clf = clf.score(X, y)
+    # print(score_clf)
 
+    # Proove classification on test data set
+    for i in range(np.shape(X)[0]):
+        x = np.reshape(X[i], (1, np.shape(X)[1]))
+        # print(np.shape(x))
+        print('id:', i+1, ' pred_label: ', clf.predict(x))
+    # print(np.shape(clf.coef_), clf.coef_)
+    # print(clf.intercept_)
 
     # Plot fitted good records:
     if stateprint:
-        print("\t* Fitting records fits...")
+        print("\t* Plotting record's fits...")
     fig = plt.figure()
     plotRecordsFit(recs, X, fig=fig, linewidth=0.5)
 
