@@ -741,8 +741,6 @@ def main(stateprint=False):
     # print(X)
     clf = LDA(n_components=None, priors=None, shrinkage=None,
               solver='svd', store_covariance=True, tol=0.01).fit(X_tr, y_tr)
-    # score_clf = clf.score(X_tr, y_tr)
-    # print(score_clf)
 
     # **********************************************************************
     # *
@@ -754,6 +752,8 @@ def main(stateprint=False):
         x = np.reshape(X_ts[i], (1, np.shape(X_ts)[1]))
         # print(np.shape(x))
         print('id:', i+1, '; pred label: ', clf.predict(x))
+    score_clf = clf.score(X_tr, y_tr)
+    print(score_clf)
     # print(np.shape(clf.coef_), clf.coef_)
     # print(clf.intercept_)
 
