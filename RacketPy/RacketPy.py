@@ -227,11 +227,14 @@ def centerRecords(recs):
         # Current and previos idx of min of accX:
         accXMinIdx = np.argmin(recs[i]['acc'], axis=0)[0]
         accXMinNextIdx = np.argmin(recs[i+1]['acc'], axis=0)[0]
-        t_shift = recs[i+1]['t'][accXMinNextIdx] - recs[i]['t'][accXMinIdx]
+        t0 = recs[i]['t'][accXMinIdx]
+        t1 = recs[i+1]['t'][accXMinNextIdx]
+        t_shift = t1 - t0
         if t_shift < 0:
             t_shift = (-1.0) * t_shift
         elif t_shift > 0:
             t_shift = (1.0) * t_shift
+        # print(t0, t1, t_shift)
         recs[i+1]['t'] = recs[i+1]['t'] + t_shift
 
 
@@ -633,7 +636,7 @@ def syncRecords(recs):
 
 
 # -----------------------------------------------------------------------------
-def plotRecords(fig, recs):
+def plotRecords(fig, recs, bad=True):
     """
     Plots records
     """
@@ -641,7 +644,7 @@ def plotRecords(fig, recs):
         if r['score'] > 0:  # Plot good records as a line
             plotData(r['t'], r['acc'], r['gyro'], r['ang'], fig=fig,
                      s=0.05, lw=0.5, scatter=False)
-        else:  # Plot bad records as scatter
+        elif r['score'] < 0 and bad:  # Plot bad records as scatter
             plotData(r['t'], r['acc'], r['gyro'], r['ang'], fig=fig,
                      s=0.05, lw=0.5, scatter=True)
 
@@ -663,8 +666,6 @@ def main(stateprint=False):
     # *
     # **********************************************************************
     # Reading train data set
-    if stateprint:
-        print("\t* Reading train records...")
     trainSetFileName = './DataSets/train/DataLog'
     trainLabelsFileName = './DataSets/train/Labels.txt'
     Ntrain = 29  # number of train files
@@ -673,8 +674,6 @@ def main(stateprint=False):
                                               numfiles=Ntrain)
 
     # Center good/bad train records:
-    if stateprint:
-        print("\t* Centering and cutting train records...")
     centerRecords(grecs_tr)
     centerRecords(brecs_tr)
 
@@ -684,8 +683,6 @@ def main(stateprint=False):
 
     # Append centerd bad to good records
     # and center them:
-    if stateprint:
-        print("\t* Appending and centering bad and good train records...")
     recs_tr = cp.deepcopy(grecs_tr)
     appendRecord(recs_tr, brecs_tr)
 
@@ -696,9 +693,7 @@ def main(stateprint=False):
     # Save record:
     # saveRecord(recs[0], "./SomeRecord.txt")
 
-    # Fit records:
-    if stateprint:
-        print("\t* Fitting train records...")
+    # Fit train records:
     X_tr, y_tr = createFMtrx(recs_tr)
 
     # **********************************************************************
@@ -713,41 +708,29 @@ def main(stateprint=False):
     testLabelsFileName = './DataSets/test/Labels.txt'
     Ntest = 15  # number of test files
 
-    """
     grecs_ts, brecs_ts, scrs_ts = readDataSet(testSetFileName,
                                               testLabelsFileName,
                                               numfiles=Ntest)
-    """
-    # Read scores:
-    scrs_ts = readScores(testLabelsFileName)
-
-    ext = '.txt'  # extension
-    rec = {'id': 0, 'score': 0,
-           't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
-    grecs_ts = []  # good records
-    brecs_ts = []  # bad records
-    for i in range(11, 12):
-        rec['id'] = i+1
-        rec['score'] = scrs_ts[i]['score']
-        rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
-            readDataLog(testSetFileName + str(i+1) + ext)
-        # deepcopy since else all records will be same
-        if rec['score'] > 0:  # good score
-            grecs_ts.append(cp.deepcopy(rec))
-        else:
-            brecs_ts.append(cp.deepcopy(rec))
-    print("id: ", grecs_ts[0]['id'], ' len: ', len(grecs_ts))
 
     # Center good/bad train records:
-    if stateprint:
-        print("\t* Centering and cutting test records...")
     centerRecords(grecs_ts)
     centerRecords(brecs_ts)
+    grecs_ts[0]['t'] = grecs_ts[0]['t'] + 6500  # correct one wrong shift
 
-    fig_ts = plt.figure()
-    plotRecords(fig_ts, grecs_ts)
-    plt.show()
-    return
+    # Cut good/bad records:
+    cutRecords(grecs_ts, nL=400, nR=185)
+    trimSize(brecs_ts, L=np.shape(grecs_ts[0]['t'])[0])
+
+    # Append centerd bad to good test records
+    # and center them:
+    recs_ts = cp.deepcopy(grecs_ts)
+    appendRecord(recs_ts, brecs_ts)
+
+    # Shift to zero time:
+    syncRecords(recs_ts)
+
+    # Fit test records:
+    X_ts, y_ts = createFMtrx(recs_ts)
 
     # **********************************************************************
     # *
@@ -767,10 +750,10 @@ def main(stateprint=False):
     # *
     # **********************************************************************
     # Proove classification on test data set
-    for i in range(np.shape(X_tr)[0]):
-        x = np.reshape(X_tr[i], (1, np.shape(X_tr)[1]))
+    for i in range(np.shape(X_ts)[0]):
+        x = np.reshape(X_ts[i], (1, np.shape(X_ts)[1]))
         # print(np.shape(x))
-        print('id:', i+1, ' pred_label: ', clf.predict(x))
+        print('id:', i+1, '; pred label: ', clf.predict(x))
     # print(np.shape(clf.coef_), clf.coef_)
     # print(clf.intercept_)
 
@@ -780,19 +763,14 @@ def main(stateprint=False):
     # *
     # **********************************************************************
     # Plot fitted good records:
-    if stateprint:
-        print("\t* Plotting record's fits...")
     fig_tr = plt.figure()
     plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.5)
-
-    if stateprint:
-        print("\t* Plotting records...")
-    # Plot train records:
-    plotRecords(fig_tr, recs_tr)
+    plotRecords(fig_tr, recs_tr, bad=True)
 
     # Plot test records:
-    # fig_ts = plt.figure()
-    # plotRecords(fig_ts, grecs_ts)
+    fig_ts = plt.figure()
+    plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.5)
+    plotRecords(fig_ts, recs_ts)
     plt.show()
 
     print("\t* Fit window length:", np.size(grecs_tr[0]['t']))
