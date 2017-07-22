@@ -726,8 +726,7 @@ def main(stateprint=False):
            't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
     grecs_ts = []  # good records
     brecs_ts = []  # bad records
-    n = 1
-    for i in range(Ntest-n-1, Ntest-n-1):
+    for i in range(11, 12):
         rec['id'] = i+1
         rec['score'] = scrs_ts[i]['score']
         rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
