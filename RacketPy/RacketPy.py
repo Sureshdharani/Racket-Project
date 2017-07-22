@@ -192,20 +192,25 @@ def plotData(t, acc, gyro, ang, fig, s=0.75, lw=1, scatter=True, fontsize=6):
 
 
 # -----------------------------------------------------------------------------
-def centerRecords(recs):
+def centerRecords(recs, tshift=0, manual=False):
     """
     Centers the datasets
     """
-    for i in range(len(recs) - 1):
-        # Current and previos idx of min of accX:
-        accXMinIdx = np.argmin(recs[i]['acc'], axis=0)[0]
-        accXMinNextIdx = np.argmin(recs[i+1]['acc'], axis=0)[0]
-        t_shift = recs[i+1]['t'][accXMinNextIdx] - recs[i]['t'][accXMinIdx]
-        if t_shift < 0:
-            t_shift = (-1.0) * t_shift
-        elif t_shift > 0:
-            t_shift = (1.0) * t_shift
-        recs[i+1]['t'] = recs[i+1]['t'] + t_shift
+    if not manual:
+        for i in range(len(recs) - 1):
+            # Current and previos idx of min of accX:
+            accXMinIdx = np.argmin(recs[i]['acc'], axis=0)[0]
+            accXMinNextIdx = np.argmin(recs[i+1]['acc'], axis=0)[0]
+            t_shift = recs[i+1]['t'][accXMinNextIdx] - recs[i]['t'][accXMinIdx]
+            if t_shift < 0:
+                t_shift = (-1.0) * t_shift
+            elif t_shift > 0:
+                t_shift = (1.0) * t_shift
+            recs[i+1]['t'] = recs[i+1]['t'] + t_shift
+    else:
+        for i in range(len(recs) - 1):
+            # Just shift by given time:
+            recs[i+1]['t'] = recs[i+1]['t'] + tshift
 
 
 # -----------------------------------------------------------------------------
@@ -320,7 +325,7 @@ def fitGauss2b(x, y, s_max=1000, dmu=20):
     Fits Gauss of second order with bias.
     """
     # Provide mean free data:
-    offset = np.mean(y)
+    offset = np.median(y)
     y = y - offset
 
     # Amplitude:
@@ -366,7 +371,7 @@ def fitGauss1b(x, y, s_max=1000, dmu=20):
     Fit one dimensional Gaussian with offset
     """
     # Provide mean free data:
-    offset = np.mean(y)
+    offset = np.median(y)
     y = y - offset
 
     # Amplitude as absolute maximum value:
@@ -583,46 +588,53 @@ def main():
 
     rec = {'id': 0, 'score': 0,
            't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
-    recs = []  # records
+    grecs = []  # good records
+    brecs = []  # bad records
     for i in range(N):
         rec['id'] = i+1
         rec['score'] = scrs[i]['score']
         rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
             readDataLog(fileName + str(i+1) + ext)
         # deepcopy since else all records will be same
-        recs.append(cp.deepcopy(rec))
+        if rec['score'] > 0:  # good score
+            grecs.append(cp.deepcopy(rec))
+        else:
+            brecs.append(cp.deepcopy(rec))
 
-    """
-    # Delete bad datasets:
-    del recs[7]
-    del recs[6]
-    del recs[0]
+    # Center good records:
+    centerRecords(grecs)
+    centerRecords(brecs)
 
-    goodIds = [r['id'] for r in recs]
-    print(goodIds)
-    """
+    # Cut good records:
+    cutRecords(grecs, nL=150, nR=134)
 
-    # Center datasets:
-    centerRecords(recs)
+    # Append centerd bad records to good records:
+    recs = cp.deepcopy(grecs)
+    for r in brecs:
+        recs.append(cp.deepcopy(r))
 
-    # Cut datasets:
-    # cutRecords(recs, nL=0, nR=0)
+    # Center new records set:
+    centerRecords(recs, manual=True, tshift=-1000)
+    print("len(recs) =", len(recs))
 
     # Save record:
     # saveRecord(recs[0], "./SomeRecord.txt")
 
     # Fit records:
-    X = createFMtrx(recs)
+    # X = createFMtrx(recs)
 
-    # Plot fitted records
+    # Plot fitted good records:
     fig = plt.figure()
-    plotRecordsFit(recs, X, fig=fig, linewidth=0.5)
+    # plotRecordsFit(recs, X, fig=fig, linewidth=0.5)
 
-    # Plot datasets:
+    # Plot good datasets:
     for r in recs:
+        # Plot good records as line
         plotData(r['t'], r['acc'], r['gyro'], r['ang'], fig=fig,
                  s=0.05, lw=0.5, scatter=False)
+        # Plot bad records as scatter
     plt.show()
+    print("---> Fit window length: ", np.size(grecs[0]['t']))
 
 
 # -----------------------------------------------------------------------------
