@@ -192,25 +192,20 @@ def plotData(t, acc, gyro, ang, fig, s=0.75, lw=1, scatter=True, fontsize=6):
 
 
 # -----------------------------------------------------------------------------
-def centerRecords(recs, tshift=0, manual=False):
+def centerRecords(recs):
     """
     Centers the datasets
     """
-    if not manual:
-        for i in range(len(recs) - 1):
-            # Current and previos idx of min of accX:
-            accXMinIdx = np.argmin(recs[i]['acc'], axis=0)[0]
-            accXMinNextIdx = np.argmin(recs[i+1]['acc'], axis=0)[0]
-            t_shift = recs[i+1]['t'][accXMinNextIdx] - recs[i]['t'][accXMinIdx]
-            if t_shift < 0:
-                t_shift = (-1.0) * t_shift
-            elif t_shift > 0:
-                t_shift = (1.0) * t_shift
-            recs[i+1]['t'] = recs[i+1]['t'] + t_shift
-    else:
-        for i in range(len(recs) - 1):
-            # Just shift by given time:
-            recs[i+1]['t'] = recs[i+1]['t'] + tshift
+    for i in range(len(recs) - 1):
+        # Current and previos idx of min of accX:
+        accXMinIdx = np.argmin(recs[i]['acc'], axis=0)[0]
+        accXMinNextIdx = np.argmin(recs[i+1]['acc'], axis=0)[0]
+        t_shift = recs[i+1]['t'][accXMinNextIdx] - recs[i]['t'][accXMinIdx]
+        if t_shift < 0:
+            t_shift = (-1.0) * t_shift
+        elif t_shift > 0:
+            t_shift = (1.0) * t_shift
+        recs[i+1]['t'] = recs[i+1]['t'] + t_shift
 
 
 # -----------------------------------------------------------------------------
@@ -577,7 +572,7 @@ def main():
 
     >>> main()
     """
-
+    print("* Reading datasets...")
     # Read scores:
     fName = './DataSets/train/Labels.txt'
     scrs = readScores(fName)
@@ -586,6 +581,7 @@ def main():
     ext = '.txt'  # extension
     N = 29  # number of files
 
+    print("---> Creating records...")
     rec = {'id': 0, 'score': 0,
            't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
     grecs = []  # good records
@@ -601,40 +597,49 @@ def main():
         else:
             brecs.append(cp.deepcopy(rec))
 
-    # Center good records:
+    # Center good/bad records:
+    print("* Centering and cutting records...")
     centerRecords(grecs)
     centerRecords(brecs)
 
     # Cut good records:
     cutRecords(grecs, nL=150, nR=134)
 
-    # Append centerd bad records to good records:
+    # Append centerd bad to good records
+    # and center them:
+    print("* Appending and centering bad and good records...")
     recs = cp.deepcopy(grecs)
+    tshift = -15000
     for r in brecs:
+        if r['score'] < 0:
+            r['t'] = r['t'] + tshift
         recs.append(cp.deepcopy(r))
-
-    # Center new records set:
-    centerRecords(recs, manual=True, tshift=-1000)
     print("len(recs) =", len(recs))
 
     # Save record:
     # saveRecord(recs[0], "./SomeRecord.txt")
 
     # Fit records:
+    print("* Fitting records...")
     # X = createFMtrx(recs)
 
     # Plot fitted good records:
     fig = plt.figure()
+    print("* Fitting records fits...")
     # plotRecordsFit(recs, X, fig=fig, linewidth=0.5)
 
     # Plot good datasets:
+    print("* Plotting records...")
     for r in recs:
-        # Plot good records as line
-        plotData(r['t'], r['acc'], r['gyro'], r['ang'], fig=fig,
-                 s=0.05, lw=0.5, scatter=False)
-        # Plot bad records as scatter
+        if r['score'] > 0:  # Plot good records as a line
+            plotData(r['t'], r['acc'], r['gyro'], r['ang'], fig=fig,
+                     s=0.05, lw=0.5, scatter=False)
+        else:  # Plot bad records as scatter
+            plotData(r['t'], r['acc'], r['gyro'], r['ang'], fig=fig,
+                     s=0.05, lw=0.5, scatter=True)
     plt.show()
-    print("---> Fit window length: ", np.size(grecs[0]['t']))
+    print("* Fit window length: ", np.size(grecs[0]['t']))
+    print("***** DONE *****")
 
 
 # -----------------------------------------------------------------------------
