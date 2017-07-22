@@ -469,9 +469,10 @@ def extractResidual(x):
 # -----------------------------------------------------------------------------
 def createFMtrx(recs):
     """
-    Creates feauture matrix as from options
+    Creates feauture matrix and labels vector from fit options
     """
     X = []
+    y = np.zeros((len(recs),), dtype=np.float)
 
     """
     accXOpt = []
@@ -507,6 +508,7 @@ def createFMtrx(recs):
                            gyroXOpt, gyroYOpt, gyroZOpt,
                            angXOpt, angYOpt, angZOpt)
         X.append(x)
+        y[r['id']-1] = r['score']
 
     """
     print("i: np.shape(X) =", np.shape(X))
@@ -526,7 +528,7 @@ def createFMtrx(recs):
     print("angZOpt: %s\n%s" % (len(gyroZOpt), gyroZOpt))
     """
 
-    return np.array(X)
+    return np.array(X), y
 
 
 # -----------------------------------------------------------------------------
@@ -680,7 +682,11 @@ def main(stateprint=False):
     # Fit records:
     if stateprint:
         print("\t* Fitting records...")
-    X = createFMtrx(recs)
+    X, y = createFMtrx(recs)
+
+    # Create classifier:
+    # print(X)
+
 
     # Plot fitted good records:
     if stateprint:
