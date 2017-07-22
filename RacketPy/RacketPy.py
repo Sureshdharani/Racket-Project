@@ -566,13 +566,67 @@ def plotRecordsFit(recs, X, fig, linewidth=0.5):
 
 
 # -----------------------------------------------------------------------------
-def main():
+def trimSize(recs, L=0):
+    """
+    Trims size of the records
+        L - length to be trimmed to
+    """
+    # print("L =", L)
+    for r in recs:
+        idxMid = int(np.shape(r['t'])[0] / 2)
+        # print(r['id'], np.shape(r['t'])[0], idxMid)
+        idxL = idxMid - int(L/2)
+        idxR = idxMid + int(L/2)
+        if np.abs(idxR - idxL) != L:
+            idxL = idxL - 1
+        r['t'] = r['t'][idxL:idxR]
+        r['acc'] = r['acc'][idxL:idxR]
+        r['gyro'] = r['gyro'][idxL:idxR]
+        r['ang'] = r['ang'][idxL:idxR]
+
+
+# -----------------------------------------------------------------------------
+def appendRecord(dest, source):
+    """
+    """
+    for r in source:
+        dest.append(cp.deepcopy(r))
+
+
+# -----------------------------------------------------------------------------
+def syncRecords(recs):
+    """
+    Syncgronises records
+    """
+    for r in recs:
+        r['t'] = r['t'] - np.min(r['t'])
+
+
+# -----------------------------------------------------------------------------
+def plotRecords(fig, recs):
+    """
+    Plots records
+    """
+    for r in recs:
+        if r['score'] > 0:  # Plot good records as a line
+            plotData(r['t'], r['acc'], r['gyro'], r['ang'], fig=fig,
+                     s=0.05, lw=0.5, scatter=False)
+        else:  # Plot bad records as scatter
+            plotData(r['t'], r['acc'], r['gyro'], r['ang'], fig=fig,
+                     s=0.05, lw=0.5, scatter=True)
+
+
+# -----------------------------------------------------------------------------
+def main(stateprint=False):
     """
     Main function.
 
     >>> main()
     """
-    print("* Reading datasets...")
+    if stateprint:
+        print("***** START *****")
+        print("\t* Reading datasets...")
+
     # Read scores:
     fName = './DataSets/train/Labels.txt'
     scrs = readScores(fName)
@@ -581,7 +635,9 @@ def main():
     ext = '.txt'  # extension
     N = 29  # number of files
 
-    print("---> Creating records...")
+    if stateprint:
+        print("\t* Creating records...")
+
     rec = {'id': 0, 'score': 0,
            't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
     grecs = []  # good records
@@ -598,50 +654,51 @@ def main():
             brecs.append(cp.deepcopy(rec))
 
     # Center good/bad records:
-    print("* Centering and cutting records...")
+    if stateprint:
+        print("\t* Centering and cutting records...")
     centerRecords(grecs)
     centerRecords(brecs)
 
-    # Cut good records:
+    # Cut good/bad records:
     cutRecords(grecs, nL=150, nR=134)
+    trimSize(brecs, L=np.shape(grecs[0]['t'])[0])
 
     # Append centerd bad to good records
     # and center them:
-    print("* Appending and centering bad and good records...")
+    if stateprint:
+        print("\t* Appending and centering bad and good records...")
     recs = cp.deepcopy(grecs)
-    tshift = -15000
-    for r in brecs:
-        if r['score'] < 0:
-            r['t'] = r['t'] + tshift
-        recs.append(cp.deepcopy(r))
-    print("len(recs) =", len(recs))
+    appendRecord(recs, brecs)
+
+    # Shift to zero time:
+    syncRecords(recs)
+    # print("len(recs) =", len(recs))
 
     # Save record:
     # saveRecord(recs[0], "./SomeRecord.txt")
 
     # Fit records:
-    print("* Fitting records...")
-    # X = createFMtrx(recs)
+    if stateprint:
+        print("\t* Fitting records...")
+    X = createFMtrx(recs)
 
     # Plot fitted good records:
+    if stateprint:
+        print("\t* Fitting records fits...")
     fig = plt.figure()
-    print("* Fitting records fits...")
-    # plotRecordsFit(recs, X, fig=fig, linewidth=0.5)
+    plotRecordsFit(recs, X, fig=fig, linewidth=0.5)
 
-    # Plot good datasets:
-    print("* Plotting records...")
-    for r in recs:
-        if r['score'] > 0:  # Plot good records as a line
-            plotData(r['t'], r['acc'], r['gyro'], r['ang'], fig=fig,
-                     s=0.05, lw=0.5, scatter=False)
-        else:  # Plot bad records as scatter
-            plotData(r['t'], r['acc'], r['gyro'], r['ang'], fig=fig,
-                     s=0.05, lw=0.5, scatter=True)
+    # Plot records:
+    if stateprint:
+        print("\t* Plotting records...")
+    plotRecords(fig, recs)
+
     plt.show()
-    print("* Fit window length: ", np.size(grecs[0]['t']))
-    print("***** DONE *****")
+    if stateprint:
+        print("\t* Fit window length:", np.size(grecs[0]['t']))
+        print("***** DONE *****")
 
 
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    main()
+    main(stateprint=True)
