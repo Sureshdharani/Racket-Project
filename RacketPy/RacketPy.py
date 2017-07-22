@@ -657,34 +657,40 @@ def main(stateprint=False):
         print("***** START *****")
         print("\t* Reading datasets...")
 
-    # Reading test data set
+    # **********************************************************************
+    # *
+    # * 1) Preprocess Train Data Set
+    # *
+    # **********************************************************************
+    # Reading train data set
     if stateprint:
-        print("\t* Reading records...")
+        print("\t* Reading train records...")
     trainSetFileName = './DataSets/train/DataLog'
-    labelsFileName = './DataSets/train/Labels.txt'
-    Ntrain = 29  # number of trian files
-    grecs, brecs, scrs = readDataSet(trainSetFileName,
-                                     labelsFileName, numfiles=Ntrain)
+    trainLabelsFileName = './DataSets/train/Labels.txt'
+    Ntrain = 29  # number of train files
+    grecs_tr, brecs_tr, scrs_tr = readDataSet(trainSetFileName,
+                                              trainLabelsFileName,
+                                              numfiles=Ntrain)
 
-    # Center good/bad records:
+    # Center good/bad train records:
     if stateprint:
-        print("\t* Centering and cutting records...")
-    centerRecords(grecs)
-    centerRecords(brecs)
+        print("\t* Centering and cutting train records...")
+    centerRecords(grecs_tr)
+    centerRecords(brecs_tr)
 
     # Cut good/bad records:
-    cutRecords(grecs, nL=150, nR=134)
-    trimSize(brecs, L=np.shape(grecs[0]['t'])[0])
+    cutRecords(grecs_tr, nL=150, nR=134)
+    trimSize(brecs_tr, L=np.shape(grecs_tr[0]['t'])[0])
 
     # Append centerd bad to good records
     # and center them:
     if stateprint:
-        print("\t* Appending and centering bad and good records...")
-    recs = cp.deepcopy(grecs)
-    appendRecord(recs, brecs)
+        print("\t* Appending and centering bad and good train records...")
+    recs_tr = cp.deepcopy(grecs_tr)
+    appendRecord(recs_tr, brecs_tr)
 
     # Shift to zero time:
-    syncRecords(recs)
+    syncRecords(recs_tr)
     # print("len(recs) =", len(recs))
 
     # Save record:
@@ -692,38 +698,107 @@ def main(stateprint=False):
 
     # Fit records:
     if stateprint:
-        print("\t* Fitting records...")
-    X, y = createFMtrx(recs)
+        print("\t* Fitting train records...")
+    X_tr, y_tr = createFMtrx(recs_tr)
 
+    # **********************************************************************
+
+    # **********************************************************************
+    # *
+    # * 2) Preprocess Test Data Set
+    # *
+    # **********************************************************************
+    # Reading test data set:
+    testSetFileName = './DataSets/test/DataLog'
+    testLabelsFileName = './DataSets/test/Labels.txt'
+    Ntest = 15  # number of test files
+
+    """
+    grecs_ts, brecs_ts, scrs_ts = readDataSet(testSetFileName,
+                                              testLabelsFileName,
+                                              numfiles=Ntest)
+    """
+    # Read scores:
+    scrs_ts = readScores(testLabelsFileName)
+
+    ext = '.txt'  # extension
+    rec = {'id': 0, 'score': 0,
+           't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
+    grecs_ts = []  # good records
+    brecs_ts = []  # bad records
+    n = 1
+    for i in range(Ntest-n-1, Ntest-n-1):
+        rec['id'] = i+1
+        rec['score'] = scrs_ts[i]['score']
+        rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
+            readDataLog(testSetFileName + str(i+1) + ext)
+        # deepcopy since else all records will be same
+        if rec['score'] > 0:  # good score
+            grecs_ts.append(cp.deepcopy(rec))
+        else:
+            brecs_ts.append(cp.deepcopy(rec))
+    print("id: ", grecs_ts[0]['id'], ' len: ', len(grecs_ts))
+
+    # Center good/bad train records:
+    if stateprint:
+        print("\t* Centering and cutting test records...")
+    centerRecords(grecs_ts)
+    centerRecords(brecs_ts)
+
+    fig_ts = plt.figure()
+    plotRecords(fig_ts, grecs_ts)
+    plt.show()
+    return
+
+    # **********************************************************************
+    # *
+    # * 3) Train Classifier
+    # *
+    # **********************************************************************
     # Create classifier and train int on test data set:
     # print(X)
     clf = LDA(n_components=None, priors=None, shrinkage=None,
-              solver='svd', store_covariance=True, tol=0.01).fit(X, y)
-    # score_clf = clf.score(X, y)
+              solver='svd', store_covariance=True, tol=0.01).fit(X_tr, y_tr)
+    # score_clf = clf.score(X_tr, y_tr)
     # print(score_clf)
 
+    # **********************************************************************
+    # *
+    # * 4) Test Classifier
+    # *
+    # **********************************************************************
     # Proove classification on test data set
-    for i in range(np.shape(X)[0]):
-        x = np.reshape(X[i], (1, np.shape(X)[1]))
+    for i in range(np.shape(X_tr)[0]):
+        x = np.reshape(X_tr[i], (1, np.shape(X_tr)[1]))
         # print(np.shape(x))
         print('id:', i+1, ' pred_label: ', clf.predict(x))
     # print(np.shape(clf.coef_), clf.coef_)
     # print(clf.intercept_)
 
+    # **********************************************************************
+    # *
+    # * 5) Show results
+    # *
+    # **********************************************************************
     # Plot fitted good records:
     if stateprint:
         print("\t* Plotting record's fits...")
-    fig = plt.figure()
-    plotRecordsFit(recs, X, fig=fig, linewidth=0.5)
+    fig_tr = plt.figure()
+    plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.5)
 
-    # Plot records:
     if stateprint:
         print("\t* Plotting records...")
-    plotRecords(fig, recs)
+    # Plot train records:
+    plotRecords(fig_tr, recs_tr)
 
+    # Plot test records:
+    # fig_ts = plt.figure()
+    # plotRecords(fig_ts, grecs_ts)
     plt.show()
+
+    print("\t* Fit window length:", np.size(grecs_tr[0]['t']))
     if stateprint:
-        print("\t* Fit window length:", np.size(grecs[0]['t']))
+        print("\t* Fit window length:", np.size(grecs_tr[0]['t']))
         print("***** DONE *****")
 
 
