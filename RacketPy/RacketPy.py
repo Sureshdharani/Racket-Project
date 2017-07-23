@@ -449,7 +449,7 @@ def createResidual(accXOpt, accYOpt, accZOpt, gyroXOpt, gyroYOpt, gyroZOpt,
                            gyroXO, gyroYO, gyroZO, \
                            angXO, angYO, angZO)
     >>> ret = [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 21.0, 22.0, \
-               23.0, 24.0, 41.0, 42.0, 43.0, 44.0, 51.0, 52.0, 53.0, \
+               23.0, 24.0, 61.0, 62.0, 63.0, 64.0, 51.0, 52.0, 53.0, \
                54.0, 55.0, 56.0, 57.0, 81.0, 82.0, 83.0, 84.0]
     >>> sum(np.array(ret) - np.array(r))
     0.0
@@ -457,7 +457,8 @@ def createResidual(accXOpt, accYOpt, accZOpt, gyroXOpt, gyroYOpt, gyroZOpt,
     res = []
     res = np.append(res, accXOpt, axis=0)
     res = np.append(res, accYOpt, axis=0)
-    res = np.append(res, gyroXOpt, axis=0)
+    # res = np.append(res, gyroXOpt, axis=0)
+    res = np.append(res, gyroZOpt, axis=0)
     res = np.append(res, gyroYOpt, axis=0)
     res = np.append(res, angYOpt, axis=0)
     return list(res)
@@ -469,15 +470,15 @@ def extractResidual(x):
     Creates residual (one line) of residual matrix X
 
     >>> x = [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 21.0, 22.0, \
-             23.0, 24.0, 41.0, 42.0, 43.0, 44.0, 51.0, 52.0, 53.0, \
+             23.0, 24.0, 61.0, 62.0, 63.0, 64.0, 51.0, 52.0, 53.0, \
              54.0, 55.0, 56.0, 57.0, 81.0, 82.0, 83.0, 84.0]
-    >>> accXO, accYO, gyroXO, gyroYO, angYO = extractResidual(x)
+    >>> accXO, accYO, gyroZO, gyroYO, angYO = extractResidual(x)
     >>> accXO
     [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0]
     >>> accYO
     [21.0, 22.0, 23.0, 24.0]
-    >>> gyroXO
-    [41.0, 42.0, 43.0, 44.0]
+    >>> gyroZO
+    [61.0, 62.0, 63.0, 64.0]
     >>> gyroYO
     [51.0, 52.0, 53.0, 54.0, 55.0, 56.0, 57.0]
     >>> angYO
@@ -486,11 +487,12 @@ def extractResidual(x):
     accXOpt = x[0:7]
     accYOpt = x[7:11]
 
-    gyroXOpt = x[11:15]
+    # gyroXOpt = x[11:15]
+    gyroZOpt = x[11:15]
     gyroYOpt = x[15:22]
 
     angYOpt = x[22::]
-    return accXOpt, accYOpt, gyroXOpt, gyroYOpt, angYOpt
+    return accXOpt, accYOpt, gyroZOpt, gyroYOpt, angYOpt
 
 
 # -----------------------------------------------------------------------------
@@ -569,7 +571,7 @@ def plotRecordsFit(recs, X, fig, linewidth=0.5):
         t = r['t'][:, 0]
 
         # Extract otions from residuals:
-        accXOpt, accYOpt, gyroXOpt, gyroYOpt, angYOpt = extractResidual(X[i])
+        accXOpt, accYOpt, gyroZOpt, gyroYOpt, angYOpt = extractResidual(X[i])
 
         # Plot record's fit:
         plt.subplot(331)
@@ -579,12 +581,12 @@ def plotRecordsFit(recs, X, fig, linewidth=0.5):
         # plt.subplot(337)
         # plt.plot(t, gauss2b(t, *accZOpt), 'r-', linewidth=linewidth)
 
-        plt.subplot(332)
-        plt.plot(t, gauss1b(t, *gyroXOpt), 'r-', linewidth=linewidth)
+        # plt.subplot(332)
+        # plt.plot(t, gauss1b(t, *gyroXOpt), 'r-', linewidth=linewidth)
         plt.subplot(335)
         plt.plot(t, gauss2b(t, *gyroYOpt), 'r-', linewidth=linewidth)
-        # plt.subplot(338)
-        # plt.plot(t, gauss1b(t, *gyroZOpt), 'r-', linewidth=linewidth)
+        plt.subplot(338)
+        plt.plot(t, gauss1b(t, *gyroZOpt), 'r-', linewidth=linewidth)
 
         # plt.subplot(333)
         # plt.plot(t, gauss2b(t, *angXOpt), 'r-', linewidth=linewidth)
@@ -688,7 +690,6 @@ def main(stateprint=False):
     # Cut good/bad records:
     cutRecords(grecs_tr, nL=175, nR=209)
     winLen_tr = avgWinLen(grecs_tr)
-    print('Train Set: winLen_tr: ', winLen_tr)
     trimSize(brecs_tr, L=winLen_tr)
 
     # Append centerd bad to good records
@@ -699,6 +700,10 @@ def main(stateprint=False):
     # Shift to zero time:
     syncRecords(recs_tr)
     # print("len(recs) =", len(recs))
+
+    # Show fit window length:
+    winLen_tr = avgWinLen(recs_tr)
+    print('Test Set: winLen_ts: ', winLen_tr)
 
     # Save record:
     # saveRecord(recs[0], "./SomeRecord.txt")
@@ -727,9 +732,8 @@ def main(stateprint=False):
     centerRecords(brecs_ts)
 
     # Cut good/bad records:
-    cutRecords(grecs_ts, nL=579, nR=260)
+    cutRecords(grecs_ts, nL=584, nR=255)
     winLen_ts = avgWinLen(grecs_ts)
-    print('Test Set: winLen_ts: ', winLen_ts)
     trimSize(brecs_ts, L=winLen_ts)
 
     # Append centerd bad to good test records
@@ -739,6 +743,10 @@ def main(stateprint=False):
 
     # Shift to zero time:
     syncRecords(recs_ts)
+
+    # Show fit window length:
+    winLen_ts = avgWinLen(recs_ts)
+    print('Test Set: winLen_ts: ', winLen_ts)
 
     # Fit test records:
     X_ts, y_ts = createFMtrx(recs_ts)
