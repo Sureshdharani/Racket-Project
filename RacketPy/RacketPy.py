@@ -678,7 +678,7 @@ def main(stateprint=False):
     # Reading train data set
     trainSetFileName = './DataSets/train/DataLog'
     trainLabelsFileName = './DataSets/train/Labels.txt'
-    Ntrain = 39  # number of train files
+    Ntrain = 69  # number of train files
     grecs_tr, brecs_tr, scrs_tr = readDataSet(trainSetFileName,
                                               trainLabelsFileName,
                                               numfiles=Ntrain)
@@ -732,7 +732,7 @@ def main(stateprint=False):
     centerRecords(brecs_ts)
 
     # Cut good/bad records:
-    cutRecords(grecs_ts, nL=584, nR=255)
+    cutRecords(grecs_ts, nL=584, nR=264)
     winLen_ts = avgWinLen(grecs_ts)
     trimSize(brecs_ts, L=winLen_ts)
 
@@ -783,7 +783,7 @@ def main(stateprint=False):
     # **********************************************************************
     # Plot fitted good records:
     fig_tr = plt.figure()
-    plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.5)
+    # plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.5)
     plotRecords(fig_tr, recs_tr, bad=True)
 
     # Plot test records:
