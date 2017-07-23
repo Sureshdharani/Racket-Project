@@ -501,7 +501,7 @@ def createFMtrx(recs):
     Creates feauture matrix and labels vector from fit options
     """
     X = []
-    y = np.zeros((len(recs),), dtype=np.float)
+    y = []
 
     """
     accXOpt = []
@@ -537,7 +537,8 @@ def createFMtrx(recs):
                            gyroXOpt, gyroYOpt, gyroZOpt,
                            angXOpt, angYOpt, angZOpt)
         X.append(x)
-        y[r['id']-1] = r['score']
+        # y[r['id']-1] = r['score']
+        y.append(r['score'])
 
     """
     print("i: np.shape(X) =", np.shape(X))
@@ -557,7 +558,7 @@ def createFMtrx(recs):
     print("angZOpt: %s\n%s" % (len(gyroZOpt), gyroZOpt))
     """
 
-    return np.array(X), y
+    return np.array(X), np.array(y)
 
 
 # -----------------------------------------------------------------------------
@@ -660,6 +661,29 @@ def avgWinLen(recs):
 
 
 # -----------------------------------------------------------------------------
+def splitTrainTest(recs, percent_train=0.75):
+    """
+    Splits records to train and test data sets
+
+    >>> recs = []
+    >>> splitTrainTest(recs, percent_train=0.789)
+    ([], [])
+    """
+    assert(percent_train < 1.0)
+    assert(percent_train > 0.0)
+
+    idx = np.arange(len(recs))
+    np.random.shuffle(idx)
+    L = int(percent_train * len(idx))
+    idx_tr = idx[:L]
+    idx_ts = idx[L:]
+
+    recs_ts = [recs[i] for i in idx_ts]
+    recs_tr = [recs[i] for i in idx_tr]
+    return recs_tr, recs_ts
+
+
+# -----------------------------------------------------------------------------
 def main(stateprint=False):
     """
     Main function.
@@ -711,18 +735,11 @@ def main(stateprint=False):
     # saveRecord(recs[0], "./SomeRecord.txt")
 
     # Split data set to train and test sets:
-    idx = np.arange(N)
-    np.random.shuffle(idx)
-    print(idx)
+    recs_tr, recs_ts = splitTrainTest(recs, percent_train=0.75)
 
-    L = int(len(recs)/2)
-    recs_tr = recs[L:]
-    recs_ts = recs[:L]
-    print(len(recs_tr), len(recs_ts))
-    return
-
-    # Fit train records:
-    X, y = createFMtrx(recs)
+    # Fit train/test records:
+    X_tr, y_tr = createFMtrx(recs_tr)
+    X_ts, y_ts = createFMtrx(recs_ts)
 
     # **********************************************************************
     # *
@@ -730,10 +747,9 @@ def main(stateprint=False):
     # *
     # **********************************************************************
     # Create classifier and train int on test data set:
-    # print(X)
-    # clf = LDA(n_components=None, priors=None, shrinkage=None,
-    #           solver='svd', store_covariance=True,
-    #           tol=0.01).fit(X_tr, y_tr)
+    clf = LDA(n_components=None, priors=None, shrinkage=None,
+              solver='svd', store_covariance=True,
+              tol=0.01).fit(X_tr, y_tr)
 
     # **********************************************************************
     # *
@@ -741,11 +757,11 @@ def main(stateprint=False):
     # *
     # **********************************************************************
     # Proove classification on test data set
-    # for i in range(np.shape(X_ts)[0]):
-    #     x = np.reshape(X_ts[i], (1, np.shape(X_ts)[1]))
-    #     print('id:\t', i+1, '; pred label:\t', clf.predict(x)[0],
-    #           '; true label:\t', y_ts[i])
-    # print("Prediction score: ", clf.score(X_ts, y_ts))
+    for i in range(np.shape(X_ts)[0]):
+        x = np.reshape(X_ts[i], (1, np.shape(X_ts)[1]))
+        print('id:\t', i+1, '; pred label:\t', clf.predict(x)[0],
+              '; true label:\t', y_ts[i])
+    print("Prediction score: ", clf.score(X_ts, y_ts))
     # print(np.shape(clf.coef_), clf.coef_)
     # print(clf.intercept_)
 
@@ -756,13 +772,14 @@ def main(stateprint=False):
     # **********************************************************************
     # Plot fitted good records:
     fig_tr = plt.figure('Train Data Set')
-    plotRecordsFit(recs, X, fig=fig_tr, linewidth=0.5)
-    plotRecords(fig_tr, recs, bad=True)
+    plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.5)
+    plotRecords(fig_tr, recs_tr, bad=True)
 
     # Plot test records:
-    # fig_ts = plt.figure('Test Data Set')
-    # plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.5)
-    # plotRecords(fig_ts, recs_ts, bad=True)
+    fig_ts = plt.figure('Test Data Set')
+    plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.5)
+    plotRecords(fig_ts, recs_ts, bad=True)
+
     plt.show()
     print('****************************************************************')
 
