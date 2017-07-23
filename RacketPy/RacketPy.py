@@ -731,7 +731,6 @@ def main(stateprint=False):
 
     # Fit test records:
     X_ts, y_ts = createFMtrx(recs_ts)
-    print(y_ts)
 
     # **********************************************************************
     # *
@@ -752,9 +751,10 @@ def main(stateprint=False):
     for i in range(np.shape(X_ts)[0]):
         x = np.reshape(X_ts[i], (1, np.shape(X_ts)[1]))
         # print(np.shape(x))
-        print('id:', i+1, '; pred label: ', clf.predict(x))
+        print('id:\t', i+1, '; pred label:\t', clf.predict(x)[0],
+              '; true label:\t', y_ts[i])
     score_clf = clf.score(X_ts, y_ts)
-    print(score_clf)
+    print("Prediction score: ", score_clf)
     # print(np.shape(clf.coef_), clf.coef_)
     # print(clf.intercept_)
 
