@@ -686,7 +686,7 @@ def main(stateprint=False):
     centerRecords(brecs_tr)
 
     # Cut good/bad records:
-    cutRecords(grecs_tr, nL=150, nR=134)
+    cutRecords(grecs_tr, nL=175, nR=209)
     winLen_tr = avgWinLen(grecs_tr)
     print('Train Set: winLen_tr: ', winLen_tr)
     trimSize(brecs_tr, L=winLen_tr)
@@ -727,7 +727,7 @@ def main(stateprint=False):
     centerRecords(brecs_ts)
 
     # Cut good/bad records:
-    cutRecords(grecs_ts, nL=554, nR=185)
+    cutRecords(grecs_ts, nL=579, nR=260)
     winLen_ts = avgWinLen(grecs_ts)
     print('Test Set: winLen_ts: ', winLen_ts)
     trimSize(brecs_ts, L=winLen_ts)
