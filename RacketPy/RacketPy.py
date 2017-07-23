@@ -66,7 +66,7 @@ def readDataLog(fileName):
     """
     Reads data log file.
 
-    >>> fileName = './DataSets/train/DataLog1.txt'
+    >>> fileName = './DataSets/DataLog1.txt'
     >>> t, acc, gyro, ang = readDataLog(fileName)
     >>> np.shape(t)
     (1240, 1)
@@ -666,131 +666,105 @@ def main(stateprint=False):
 
     >>> main()
     """
-    if stateprint:
-        print("***** START *****")
-        print("\t* Reading datasets...")
+    print('****************************************************************')
+    # **********************************************************************
+    # *
+    # * 1) Read Data Set
+    # *
+    # **********************************************************************
+    # Reading data set
+    dataSetFileName = './DataSets/DataLog'
+    labelsFileName = './DataSets/Labels.txt'
+    N = 74  # number of data sets
+    grecs, brecs, scrs = readDataSet(dataSetFileName, labelsFileName,
+                                     numfiles=N)
 
-    # **********************************************************************
-    # *
-    # * 1) Preprocess Train Data Set
-    # *
-    # **********************************************************************
-    # Reading train data set
-    trainSetFileName = './DataSets/train/DataLog'
-    trainLabelsFileName = './DataSets/train/Labels.txt'
-    Ntrain = 69  # number of train files
-    grecs_tr, brecs_tr, scrs_tr = readDataSet(trainSetFileName,
-                                              trainLabelsFileName,
-                                              numfiles=Ntrain)
+    # Show number of bad and good data sets:
+    scores = np.array([int(s['score']) for s in scrs])
+    unique, counts = np.unique(scores, return_counts=True)
+    print("Score: %s; Count: %s" % (unique[0], counts[0]))
+    print("Score: %s; Count: %s" % (unique[1], counts[1]))
+    print('Total Count: ', counts[0] + counts[1])
 
     # Center good/bad train records:
-    centerRecords(grecs_tr)
-    centerRecords(brecs_tr)
+    centerRecords(grecs)
+    centerRecords(brecs)
 
     # Cut good/bad records:
-    cutRecords(grecs_tr, nL=175, nR=209)
-    winLen_tr = avgWinLen(grecs_tr)
-    trimSize(brecs_tr, L=winLen_tr)
+    cutRecords(grecs, nL=175, nR=209)
+    winLen = avgWinLen(grecs)
+    trimSize(brecs, L=winLen)
 
     # Append centerd bad to good records
     # and center them:
-    recs_tr = cp.deepcopy(grecs_tr)
-    appendRecord(recs_tr, brecs_tr)
+    recs = cp.deepcopy(grecs)
+    appendRecord(recs, brecs)
 
     # Shift to zero time:
-    syncRecords(recs_tr)
-    # print("len(recs) =", len(recs))
+    syncRecords(recs)
 
     # Show fit window length:
-    winLen_tr = avgWinLen(recs_tr)
-    print('Test Set: winLen_ts: ', winLen_tr)
+    winLen = avgWinLen(recs)
+    print('Fit window length:', winLen)
 
     # Save record:
     # saveRecord(recs[0], "./SomeRecord.txt")
 
+    # Split data set to train and test sets:
+    idx = np.arange(N)
+    np.random.shuffle(idx)
+    print(idx)
+
+    L = int(len(recs)/2)
+    recs_tr = recs[L:]
+    recs_ts = recs[:L]
+    print(len(recs_tr), len(recs_ts))
+    return
+
     # Fit train records:
-    X_tr, y_tr = createFMtrx(recs_tr)
-
-    # **********************************************************************
-
-    # **********************************************************************
-    # *
-    # * 2) Preprocess Test Data Set
-    # *
-    # **********************************************************************
-    # Reading test data set:
-    testSetFileName = './DataSets/test/DataLog'
-    testLabelsFileName = './DataSets/test/Labels.txt'
-    Ntest = 5  # number of test files
-
-    grecs_ts, brecs_ts, scrs_ts = readDataSet(testSetFileName,
-                                              testLabelsFileName,
-                                              numfiles=Ntest)
-
-    # Center good/bad train records:
-    centerRecords(grecs_ts)
-    centerRecords(brecs_ts)
-
-    # Cut good/bad records:
-    cutRecords(grecs_ts, nL=584, nR=264)
-    winLen_ts = avgWinLen(grecs_ts)
-    trimSize(brecs_ts, L=winLen_ts)
-
-    # Append centerd bad to good test records
-    # and center them:
-    recs_ts = cp.deepcopy(grecs_ts)
-    appendRecord(recs_ts, brecs_ts)
-
-    # Shift to zero time:
-    syncRecords(recs_ts)
-
-    # Show fit window length:
-    winLen_ts = avgWinLen(recs_ts)
-    print('Test Set: winLen_ts: ', winLen_ts)
-
-    # Fit test records:
-    X_ts, y_ts = createFMtrx(recs_ts)
+    X, y = createFMtrx(recs)
 
     # **********************************************************************
     # *
-    # * 3) Train Classifier
+    # * 2) Train Classifier
     # *
     # **********************************************************************
     # Create classifier and train int on test data set:
     # print(X)
-    clf = LDA(n_components=None, priors=None, shrinkage=None,
-              solver='svd', store_covariance=True,
-              tol=0.01).fit(X_tr, y_tr)
+    # clf = LDA(n_components=None, priors=None, shrinkage=None,
+    #           solver='svd', store_covariance=True,
+    #           tol=0.01).fit(X_tr, y_tr)
 
     # **********************************************************************
     # *
-    # * 4) Test Classifier
+    # * 3) Test Classifier
     # *
     # **********************************************************************
     # Proove classification on test data set
-    for i in range(np.shape(X_ts)[0]):
-        x = np.reshape(X_ts[i], (1, np.shape(X_ts)[1]))
-        print('id:\t', i+1, '; pred label:\t', clf.predict(x)[0],
-              '; true label:\t', y_ts[i])
-    print("Prediction score: ", clf.score(X_ts, y_ts))
+    # for i in range(np.shape(X_ts)[0]):
+    #     x = np.reshape(X_ts[i], (1, np.shape(X_ts)[1]))
+    #     print('id:\t', i+1, '; pred label:\t', clf.predict(x)[0],
+    #           '; true label:\t', y_ts[i])
+    # print("Prediction score: ", clf.score(X_ts, y_ts))
     # print(np.shape(clf.coef_), clf.coef_)
     # print(clf.intercept_)
 
     # **********************************************************************
     # *
-    # * 5) Show results
+    # * 4) Show results
     # *
     # **********************************************************************
     # Plot fitted good records:
-    fig_tr = plt.figure()
-    # plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.5)
-    plotRecords(fig_tr, recs_tr, bad=True)
+    fig_tr = plt.figure('Train Data Set')
+    plotRecordsFit(recs, X, fig=fig_tr, linewidth=0.5)
+    plotRecords(fig_tr, recs, bad=True)
 
     # Plot test records:
-    fig_ts = plt.figure()
-    plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.5)
-    plotRecords(fig_ts, recs_ts, bad=True)
+    # fig_ts = plt.figure('Test Data Set')
+    # plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.5)
+    # plotRecords(fig_ts, recs_ts, bad=True)
     plt.show()
+    print('****************************************************************')
 
 
 # -----------------------------------------------------------------------------
