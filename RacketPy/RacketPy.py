@@ -751,7 +751,8 @@ def main(stateprint=False):
     # Create classifier and train int on test data set:
     # print(X)
     clf = LDA(n_components=None, priors=None, shrinkage=None,
-              solver='svd', store_covariance=True, tol=0.01).fit(X_tr, y_tr)
+              solver='svd', store_covariance=True,
+              tol=0.01).fit(X_tr, y_tr)
 
     # **********************************************************************
     # *
