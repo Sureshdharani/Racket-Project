@@ -223,19 +223,16 @@ def centerRecords(recs):
     """
     Centers the datasets
     """
-    for i in range(len(recs) - 1):
-        # Current and previos idx of min of accX:
-        accXMinIdx = np.argmin(recs[i]['acc'], axis=0)[0]
-        accXMinNextIdx = np.argmin(recs[i+1]['acc'], axis=0)[0]
-        t0 = recs[i]['t'][accXMinIdx]
-        t1 = recs[i+1]['t'][accXMinNextIdx]
-        t_shift = t1 - t0
-        if t_shift < 0:
-            t_shift = (-1.0) * t_shift
-        elif t_shift > 0:
-            t_shift = (1.0) * t_shift
-        # print(t0, t1, t_shift)
-        recs[i+1]['t'] = recs[i+1]['t'] + t_shift
+    # Find time stamp of most left accX min:
+    t0s = []
+    for r in recs:
+        t0s.append(r['t'][np.argmin(r['acc'][:, 0], axis=0)][0])
+    t0 = np.min(t0s)
+    t_shift = t0s - t0  # shift times
+
+    # Substruct shift times from each record
+    for i, r in enumerate(recs):
+        r['t'] = r['t'] - t_shift[i]
 
 
 # -----------------------------------------------------------------------------
@@ -668,7 +665,7 @@ def main(stateprint=False):
     # Reading train data set
     trainSetFileName = './DataSets/train/DataLog'
     trainLabelsFileName = './DataSets/train/Labels.txt'
-    Ntrain = 29  # number of train files
+    Ntrain = 39  # number of train files
     grecs_tr, brecs_tr, scrs_tr = readDataSet(trainSetFileName,
                                               trainLabelsFileName,
                                               numfiles=Ntrain)
@@ -679,7 +676,7 @@ def main(stateprint=False):
 
     # Cut good/bad records:
     cutRecords(grecs_tr, nL=150, nR=134)
-    trimSize(brecs_tr, L=np.shape(grecs_tr[0]['t'])[0])
+    # trimSize(brecs_tr, L=np.shape(grecs_tr[0]['t'])[0])
 
     # Append centerd bad to good records
     # and center them:
@@ -687,7 +684,7 @@ def main(stateprint=False):
     appendRecord(recs_tr, brecs_tr)
 
     # Shift to zero time:
-    syncRecords(recs_tr)
+    # syncRecords(recs_tr)
     # print("len(recs) =", len(recs))
 
     # Save record:
@@ -706,7 +703,7 @@ def main(stateprint=False):
     # Reading test data set:
     testSetFileName = './DataSets/test/DataLog'
     testLabelsFileName = './DataSets/test/Labels.txt'
-    Ntest = 15  # number of test files
+    Ntest = 5  # number of test files
 
     grecs_ts, brecs_ts, scrs_ts = readDataSet(testSetFileName,
                                               testLabelsFileName,
@@ -715,11 +712,10 @@ def main(stateprint=False):
     # Center good/bad train records:
     centerRecords(grecs_ts)
     centerRecords(brecs_ts)
-    grecs_ts[0]['t'] = grecs_ts[0]['t'] + 6500  # correct one wrong shift
 
     # Cut good/bad records:
-    cutRecords(grecs_ts, nL=400, nR=185)
-    trimSize(brecs_ts, L=np.shape(grecs_ts[0]['t'])[0])
+    # cutRecords(grecs_ts, nL=400, nR=185)
+    # trimSize(brecs_ts, L=np.shape(grecs_ts[0]['t'])[0])
 
     # Append centerd bad to good test records
     # and center them:
@@ -727,7 +723,7 @@ def main(stateprint=False):
     appendRecord(recs_ts, brecs_ts)
 
     # Shift to zero time:
-    syncRecords(recs_ts)
+    # syncRecords(recs_ts)
 
     # Fit test records:
     X_ts, y_ts = createFMtrx(recs_ts)
@@ -765,13 +761,13 @@ def main(stateprint=False):
     # **********************************************************************
     # Plot fitted good records:
     fig_tr = plt.figure()
-    plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.5)
-    plotRecords(fig_tr, recs_tr, bad=True)
+    # plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.5)
+    plotRecords(fig_tr, recs_tr, bad=False)
 
     # Plot test records:
     fig_ts = plt.figure()
-    plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.5)
-    plotRecords(fig_ts, recs_ts)
+    # plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.5)
+    plotRecords(fig_ts, recs_ts, bad=False)
     plt.show()
 
     print("\t* Fit window length:", np.size(grecs_tr[0]['t']))
