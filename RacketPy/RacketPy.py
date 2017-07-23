@@ -647,6 +647,17 @@ def plotRecords(fig, recs, bad=True):
 
 
 # -----------------------------------------------------------------------------
+def avgWinLen(recs):
+    """
+    Returns averaged window length of over records
+    """
+    sz = []
+    for r in recs:
+        sz.append(np.shape(r['t'])[0])
+    return np.median(sz)
+
+
+# -----------------------------------------------------------------------------
 def main(stateprint=False):
     """
     Main function.
@@ -676,7 +687,9 @@ def main(stateprint=False):
 
     # Cut good/bad records:
     cutRecords(grecs_tr, nL=150, nR=134)
-    # trimSize(brecs_tr, L=np.shape(grecs_tr[0]['t'])[0])
+    winLen_tr = avgWinLen(grecs_tr)
+    print('Train Set: winLen_tr: ', winLen_tr)
+    trimSize(brecs_tr, L=winLen_tr)
 
     # Append centerd bad to good records
     # and center them:
@@ -684,7 +697,7 @@ def main(stateprint=False):
     appendRecord(recs_tr, brecs_tr)
 
     # Shift to zero time:
-    # syncRecords(recs_tr)
+    syncRecords(recs_tr)
     # print("len(recs) =", len(recs))
 
     # Save record:
@@ -714,8 +727,10 @@ def main(stateprint=False):
     centerRecords(brecs_ts)
 
     # Cut good/bad records:
-    # cutRecords(grecs_ts, nL=400, nR=185)
-    # trimSize(brecs_ts, L=np.shape(grecs_ts[0]['t'])[0])
+    cutRecords(grecs_ts, nL=554, nR=185)
+    winLen_ts = avgWinLen(grecs_ts)
+    print('Test Set: winLen_ts: ', winLen_ts)
+    trimSize(brecs_ts, L=winLen_ts)
 
     # Append centerd bad to good test records
     # and center them:
@@ -723,7 +738,7 @@ def main(stateprint=False):
     appendRecord(recs_ts, brecs_ts)
 
     # Shift to zero time:
-    # syncRecords(recs_ts)
+    syncRecords(recs_ts)
 
     # Fit test records:
     X_ts, y_ts = createFMtrx(recs_ts)
@@ -746,11 +761,9 @@ def main(stateprint=False):
     # Proove classification on test data set
     for i in range(np.shape(X_ts)[0]):
         x = np.reshape(X_ts[i], (1, np.shape(X_ts)[1]))
-        # print(np.shape(x))
         print('id:\t', i+1, '; pred label:\t', clf.predict(x)[0],
               '; true label:\t', y_ts[i])
-    score_clf = clf.score(X_ts, y_ts)
-    print("Prediction score: ", score_clf)
+    print("Prediction score: ", clf.score(X_ts, y_ts))
     # print(np.shape(clf.coef_), clf.coef_)
     # print(clf.intercept_)
 
@@ -761,19 +774,14 @@ def main(stateprint=False):
     # **********************************************************************
     # Plot fitted good records:
     fig_tr = plt.figure()
-    # plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.5)
-    plotRecords(fig_tr, recs_tr, bad=False)
+    plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.5)
+    plotRecords(fig_tr, recs_tr, bad=True)
 
     # Plot test records:
     fig_ts = plt.figure()
-    # plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.5)
-    plotRecords(fig_ts, recs_ts, bad=False)
+    plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.5)
+    plotRecords(fig_ts, recs_ts, bad=True)
     plt.show()
-
-    print("\t* Fit window length:", np.size(grecs_tr[0]['t']))
-    if stateprint:
-        print("\t* Fit window length:", np.size(grecs_tr[0]['t']))
-        print("***** DONE *****")
 
 
 # -----------------------------------------------------------------------------
