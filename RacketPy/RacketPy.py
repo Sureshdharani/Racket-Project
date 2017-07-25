@@ -818,12 +818,12 @@ def main(stateprint=False):
     # **********************************************************************
     # Plot fitted good records:
     fig_tr = plt.figure('Train Data Set')
-    # plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.75)
+    plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.75)
     plotRecords(fig_tr, recs_tr, bad=True)
 
     # Plot test records:
     fig_ts = plt.figure('Test Data Set')
-    # plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.75)
+    plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.75)
     plotRecords(fig_ts, recs_ts, bad=True)
 
     plt.show()
