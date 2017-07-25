@@ -114,7 +114,7 @@ private:  // functions
     static void _quat2euler(const float q_w, const float q_x,
                             const float q_y, const float q_z,
                             float *t_x, float *t_y, float *t_z);
-    void _appendToBuffer(SensBuffer *sensData, const QString data);
+    void _appendToBuffer(SensBuffer *sensData, SensBuffer *fitData, const QString data);
 
 private:  // variables
     bool _isFirstPacket;  // first packet flag

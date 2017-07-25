@@ -14,7 +14,7 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     _isFirstPacket = true;
     _startTime = 0;
 
-    fitWinLen = 100;
+    fitWinLen = 141;
     isEdisson = true;
 
     connect(_socket, SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
@@ -44,16 +44,17 @@ void RacketSensorServer::readPendingDatagrams()
 
     QString data(buffer);
 
-    _appendToBuffer(&_sensData, data);
+    _appendToBuffer(&_sensData, &_fitData, data);
 
     if (true) {  // Fit sensor data (do it only if the buffer accumulated enough data):
         // _fitData = _fitSensData(_sensData, fitWinLen);
-        emit(sendSensData(_sensData, _fitData));
+        // emit(sendSensData(_sensData, _fitData));
     }
 }
 
 //-----------------------------------------------------------------------------
 void RacketSensorServer::_appendToBuffer(SensBuffer *sensData,
+                                         SensBuffer *fitData,
                                          const QString data)
 {
     // Delete packets from beggining of the buffer
@@ -61,18 +62,25 @@ void RacketSensorServer::_appendToBuffer(SensBuffer *sensData,
     if (sensData->size() >= BUFF_SIZE)
         sensData->pop_front();
 
+    if (fitData->size() >= fitWinLen)
+        fitData->pop_front();
+
     // Append new element
+    SensPacket p;
     if (!isEdisson) {  // process packets from mobile app
         auto sensPacketPrev = sensData->empty() ? SensPacket() : sensData->back();
-        sensData->push_back(processInPacketMobile(data, sensPacketPrev));
+        p = processInPacketMobile(data, sensPacketPrev);
     } else {  // process packet from edison
         if (sensData->empty()) {
             _isFirstPacket = true;
         } else {
             _isFirstPacket = false;
         }
-        sensData->push_back(processInPacketEdisson(data, _isFirstPacket));
+        p = processInPacketEdisson(data, _isFirstPacket);
     }
+
+    sensData->push_back(p);
+    fitData->push_back(p);
 }
 
 //-----------------------------------------------------------------------------
