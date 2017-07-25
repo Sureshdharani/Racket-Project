@@ -299,6 +299,30 @@ def saveRecord(record, fileName):
 
 
 # -----------------------------------------------------------------------------
+def saveRecordOriginally(record, fileName):
+    """
+    Saves record to file ariginally as from RacketSensorClient
+    """
+    file = open(fileName, "w")
+
+    d = '@'  # delimiter
+    n = '\n'  # new line
+    for i in range(len(record['t'])):
+        line = 's@' + \
+               str(record['t'][i][0]) + d + \
+               str(record['acc'][i][0]) + d + \
+               str(record['acc'][i][1]) + d + \
+               str(record['acc'][i][2]) + d + \
+               str(record['gyro'][i][0]) + d + \
+               str(record['gyro'][i][1]) + d + \
+               str(record['gyro'][i][2]) + d + \
+               str(record['ang'][i][0]) + d + \
+               str(record['ang'][i][1]) + d + \
+               str(record['ang'][i][2]) + '@;' + n
+        file.write(line)
+    file.close()
+
+# -----------------------------------------------------------------------------
 def gauss1b(x, A, mu, s, b):
     """
     Fits Gaussian with bias
@@ -684,6 +708,24 @@ def splitTrainTest(recs, percent_train=0.75):
 
 
 # -----------------------------------------------------------------------------
+def correctAndSafe(grecs, brecs, setName='./DataLog'):
+    """
+    Corrects some values of datasets and safes it
+    """
+    # g - vector correction (were wrong in Edisson first)
+    g = 9.808227 # https://www.ptb.de/cartoweb3/SISproject.php
+    for r in grecs:
+        r['acc'] = g * r['acc']
+    for r in brecs:
+        r['acc'] = g * r['acc']
+
+    for r in grecs:
+        saveRecordOriginally(r, setName + str(r['id']) + '.txt')
+    for r in brecs:
+        saveRecordOriginally(r, setName + str(r['id']) + '.txt')
+
+
+# -----------------------------------------------------------------------------
 def main(stateprint=False):
     """
     Main function.
@@ -696,7 +738,6 @@ def main(stateprint=False):
     # * 1) Read Data Set
     # *
     # **********************************************************************
-    g = 9.808227 # https://www.ptb.de/cartoweb3/SISproject.php
     # Reading data set
     dataSetFileName = './DataSets/DataLog'
     labelsFileName = './DataSets/Labels.txt'
@@ -704,11 +745,9 @@ def main(stateprint=False):
     grecs, brecs, scrs = readDataSet(dataSetFileName, labelsFileName,
                                      numfiles=N)
 
-    # g - vector correction (were wrong in Edisson first)
-    for r in grecs:
-        r['acc'] = g * r['acc']
-    for r in brecs:
-        r['acc'] = g * r['acc']
+    # Correct and safe (be carefool - look in to function):
+    # correctAndSafe(grecs, brecs, setName='./DataLog')
+    # return
 
     # Show number of bad and good data sets:
     scores = np.array([int(s['score']) for s in scrs])
