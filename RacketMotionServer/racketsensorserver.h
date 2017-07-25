@@ -86,7 +86,7 @@ public:  // functions
     // Processes packet from edisson:
     // Packet fromat:
     // "s@TimeStamp@accX@accY@accZ@gyroX@gyroY@gyroZ@w@x@y@z@;"
-    SensPacket processInPacketEdisson(const QString data);
+    SensPacket processInPacketEdisson(const QString data, const bool isFirstPacket = false);
 
 public:  // variables
     bool isEdisson;
@@ -117,7 +117,8 @@ private:  // functions
     void _appendToBuffer(SensBuffer *sensData, const QString data);
 
 private:  // variables
-
+    bool _isFirstPacket;  // first packet flag
+    double _startTime;
     QUdpSocket* _socket;
     SensBuffer _sensData;    // raw sensor data
     SensBuffer _fitData;  // fitted sensor data

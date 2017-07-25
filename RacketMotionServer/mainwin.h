@@ -51,7 +51,6 @@ private:  // functions
     void _setUpPlot(QCustomPlot *plot, const QString timeFormat = "%m:%s",
                     const QString xLabel = "x", const QString yLabel = "y");
     void _appendToPlot(QCustomPlot *plot, const double key, const double value,
-                       std::vector<double> t, std::vector<double> fit,
                        const int scrollRange = 10);
     void _updatePlots(const SensBuffer sensData, const SensBuffer fitData,
                       const int scrollRange = 10);

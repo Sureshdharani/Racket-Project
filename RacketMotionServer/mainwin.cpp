@@ -107,6 +107,7 @@ void MainWin::fitWinLenChnged()
 //-----------------------------------------------------------------------------
 void MainWin::rcvSensData(const SensBuffer sensData, const SensBuffer fitData)
 {
+    /*
     // Calculate frames per second:
     static QTime time(QTime::currentTime());
     double key = time.elapsed()/1000.0; // time elapsed since start, in seconds
@@ -117,23 +118,28 @@ void MainWin::rcvSensData(const SensBuffer sensData, const SensBuffer fitData)
     double dtPlot = t1 - _prevPlotTimePoint;
     const unsigned int scrollRange = ui->pltBufSzLnEd->text().toInt();
 
-    // QtConcurrent::run(this, &MainWin::_appendToPlot, ui->wid11,
-    // sensDataPacket.timeStamp, sensDataPacket.acc.x, scrollRange);
-    _updatePlots(sensData, fitData, scrollRange);
-    ++frameCount;
-    _prevPlotTimePoint = t1;
+    if (dtPlot >= 75) {
+        // QtConcurrent::run(this, &MainWin::_appendToPlot, ui->wid11,
+        // sensDataPacket.timeStamp, sensDataPacket.acc.x, scrollRange);
+        _updatePlots(sensData, fitData, scrollRange);
+        ++frameCount;
+        _prevPlotTimePoint = t1;
 
-    ui->plotTimeMSLabel->setText(QString::number(dtPlot, 'f', 2));
-    ui->FPSLabel->setText(QString::number(frameCount/(key-lastFpsKey), 'f', 2));
-    ui->totDataPtLabel->setText(QString::number(ui->wid11->graph(0)->data()->size()));
-    ui->transferTimeMSLabel->setText(QString::number((sensData.back().t - _prevTimeStamp) * 1000, 'f', 2));
-    ui->procTimeMSLabel->setText(QString::number(t1 - _prevProcessTimePoint, 'f', 2));
+        ui->plotTimeMSLabel->setText(QString::number(dtPlot, 'f', 2));
+        ui->FPSLabel->setText(QString::number(frameCount/(key-lastFpsKey), 'f', 2));
+        ui->totDataPtLabel->setText(QString::number(ui->wid11->graph(0)->data()->size()));
+        ui->transferTimeMSLabel->setText(QString::number((sensData.back().t - _prevTimeStamp) * 1000, 'f', 2));
+        ui->procTimeMSLabel->setText(QString::number(t1 - _prevProcessTimePoint, 'f', 2));
+    }
 
     // Update timer variables
     lastFpsKey = key;
     frameCount = 0;
     _prevProcessTimePoint = t1;
     _prevTimeStamp = sensData.back().t;
+    */
+
+    _updatePlots(sensData, fitData, ui->pltBufSzLnEd->text().toInt());
 }
 
 //-----------------------------------------------------------------------------
@@ -200,8 +206,8 @@ void MainWin::_setUpPlot(QCustomPlot *plot, const QString timeFormat,
 
 //-----------------------------------------------------------------------------
 void MainWin::_appendToPlot(QCustomPlot *plot,
-                            const double key, const double value,
-                            std::vector<double> t, std::vector<double> fit,
+                            const double key,
+                            const double value,
                             const int scrollRange)
 {
   // add data to lines:
@@ -210,11 +216,13 @@ void MainWin::_appendToPlot(QCustomPlot *plot,
   // rescale value (vertical) axis to fit the current data:
   plot->graph(0)->rescaleValueAxis(true);
 
+  /*
   // append fitted data:
   plot->graph(1)->data()->clear();
   for (unsigned int i = 0; i < fit.size(); i++)
       plot->graph(1)->addData(t.at(i), fit.at(i));
   plot->graph(1)->rescaleValueAxis(true);
+  */
 
   // make key axis range scroll with the data:
   plot->xAxis->setRange(key, scrollRange, Qt::AlignRight);
@@ -225,48 +233,22 @@ void MainWin::_appendToPlot(QCustomPlot *plot,
 void MainWin::_updatePlots(const SensBuffer sensData, const SensBuffer fitData,
                            const int scrollRange)
 {
-    const auto t = sensData.back().t;
-    const auto packet = sensData.back();
+    auto t = sensData.back().t;
+    auto packet = sensData.back();
 
-    // = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
-    std::vector<double> tFitData;
-    std::vector<double> accX;
-    std::vector<double> accY;
-    std::vector<double> accZ;
+    for (unsigned int i = 0; i < sensData.size(); i++) {
+        t = sensData.at(i).t;
+        packet = sensData.at(i);
+        _appendToPlot(ui->wid11, t, packet.acc.x, scrollRange);
+        _appendToPlot(ui->wid21, t, packet.acc.y, scrollRange);
+        _appendToPlot(ui->wid31, t, packet.acc.z, scrollRange);
 
-    std::vector<double> gyroX;
-    std::vector<double> gyroY;
-    std::vector<double> gyroZ;
+        _appendToPlot(ui->wid12, t, packet.gyro.x, scrollRange);
+        _appendToPlot(ui->wid22, t, packet.gyro.y, scrollRange);
+        _appendToPlot(ui->wid32, t, packet.gyro.z, scrollRange);
 
-    std::vector<double> thetaX;
-    std::vector<double> thetaY;
-    std::vector<double> thetaZ;
-
-    foreach(auto fd, fitData) {
-        accX.push_back(fd.acc.x);
-        accY.push_back(fd.acc.y);
-        accZ.push_back(fd.acc.z);
-
-        gyroX.push_back(fd.gyro.x);
-        gyroY.push_back(fd.gyro.y);
-        gyroZ.push_back(fd.gyro.z);
-
-        thetaX.push_back(fd.ang.x);
-        thetaY.push_back(fd.ang.y);
-        thetaZ.push_back(fd.ang.z);
-        tFitData.push_back(fd.t);
+        _appendToPlot(ui->wid13, t, packet.ang.x, scrollRange);
+        _appendToPlot(ui->wid23, t, packet.ang.y, scrollRange);
+        _appendToPlot(ui->wid33, t, packet.ang.z, scrollRange);
     }
-    // std::reverse(d.begin(), d.end());
-
-    _appendToPlot(ui->wid11, t, packet.acc.x, tFitData, accX, scrollRange);
-    _appendToPlot(ui->wid21, t, packet.acc.y, tFitData, accY, scrollRange);
-    _appendToPlot(ui->wid31, t, packet.acc.z, tFitData, accZ, scrollRange);
-
-    _appendToPlot(ui->wid12, t, packet.gyro.x, tFitData, gyroX, scrollRange);
-    _appendToPlot(ui->wid22, t, packet.gyro.y, tFitData, gyroY, scrollRange);
-    _appendToPlot(ui->wid32, t, packet.gyro.z, tFitData, gyroZ, scrollRange);
-
-    _appendToPlot(ui->wid13, t, packet.ang.x, tFitData, thetaX, scrollRange);
-    _appendToPlot(ui->wid23, t, packet.ang.y, tFitData, thetaY, scrollRange);
-    _appendToPlot(ui->wid33, t, packet.ang.z, tFitData, thetaZ, scrollRange);
 }

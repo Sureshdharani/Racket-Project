@@ -696,12 +696,19 @@ def main(stateprint=False):
     # * 1) Read Data Set
     # *
     # **********************************************************************
+    g = 9.808227 # https://www.ptb.de/cartoweb3/SISproject.php
     # Reading data set
     dataSetFileName = './DataSets/DataLog'
     labelsFileName = './DataSets/Labels.txt'
-    N = 74  # number of data sets
+    N = 93  # number of data sets
     grecs, brecs, scrs = readDataSet(dataSetFileName, labelsFileName,
                                      numfiles=N)
+
+    # g - vector correction (were wrong in Edisson first)
+    for r in grecs:
+        r['acc'] = g * r['acc']
+    for r in brecs:
+        r['acc'] = g * r['acc']
 
     # Show number of bad and good data sets:
     scores = np.array([int(s['score']) for s in scrs])
@@ -732,7 +739,7 @@ def main(stateprint=False):
     print('Fit window length:', winLen)
 
     # Save record:
-    # saveRecord(recs[0], "./SomeRecord.txt")
+    saveRecord(recs[0], "./SomeRecord.txt")
 
     # Split data set to train and test sets:
     recs_tr, recs_ts = splitTrainTest(recs, percent_train=0.75)
@@ -772,12 +779,12 @@ def main(stateprint=False):
     # **********************************************************************
     # Plot fitted good records:
     fig_tr = plt.figure('Train Data Set')
-    plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.75)
+    # plotRecordsFit(recs_tr, X_tr, fig=fig_tr, linewidth=0.75)
     plotRecords(fig_tr, recs_tr, bad=True)
 
     # Plot test records:
     fig_ts = plt.figure('Test Data Set')
-    plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.75)
+    # plotRecordsFit(recs_ts, X_ts, fig=fig_ts, linewidth=0.75)
     plotRecords(fig_ts, recs_ts, bad=True)
 
     plt.show()

@@ -11,6 +11,8 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
 
     _sensData = SensBuffer();
     _fitData = SensBuffer();
+    _isFirstPacket = true;
+    _startTime = 0;
 
     fitWinLen = 100;
     isEdisson = true;
@@ -64,7 +66,12 @@ void RacketSensorServer::_appendToBuffer(SensBuffer *sensData,
         auto sensPacketPrev = sensData->empty() ? SensPacket() : sensData->back();
         sensData->push_back(processInPacketMobile(data, sensPacketPrev));
     } else {  // process packet from edison
-        sensData->push_back(processInPacketEdisson(data));
+        if (sensData->empty()) {
+            _isFirstPacket = true;
+        } else {
+            _isFirstPacket = false;
+        }
+        sensData->push_back(processInPacketEdisson(data, _isFirstPacket));
     }
 }
 
@@ -183,7 +190,8 @@ SensPacket RacketSensorServer::processInPacketMobile(const QString packet,
 }
 
 //-----------------------------------------------------------------------------
-SensPacket RacketSensorServer::processInPacketEdisson(const QString data)
+SensPacket RacketSensorServer::processInPacketEdisson(const QString data,
+                                                      const bool isFirstPacket)
 {
     // Packet fromat:
     // "s@TimeStamp@accX@accY@accZ@gyroX@gyroY@gyroZ@angX@angY@angZ@;"
@@ -209,7 +217,12 @@ SensPacket RacketSensorServer::processInPacketEdisson(const QString data)
         }
     }
 
+    if (isFirstPacket) {  // set start time to zero
+        _startTime = std::stod(p_vec.at(0));
+    }
+
     p.t = std::stod(p_vec.at(0));
+    p.t = p.t - _startTime;
 
     p.acc.x = std::stof(p_vec.at(1));
     p.acc.y = std::stof(p_vec.at(2));

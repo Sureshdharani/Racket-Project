@@ -43,6 +43,9 @@
 
 #define DIVIDER static_cast<float>(16384.0)
 
+// https://www.ptb.de/cartoweb3/SISproject.php
+#define g static_cast<float>(9.808227)
+
 using std::vector;
 using std::string;
 using std::cout;
@@ -191,9 +194,9 @@ Motion_param MPU9250_Loop() {
     int16_t Gyro_z_Raw = 0;
 
     mpu.getAcceleration(&Acc_x_Raw, &Acc_y_Raw, &Acc_z_Raw);
-    mp.Acc_x_Raw  = static_cast<float>(Acc_x_Raw) / DIVIDER;
-    mp.Acc_y_Raw  = static_cast<float>(Acc_y_Raw) / DIVIDER;
-    mp.Acc_z_Raw  = static_cast<float>(Acc_z_Raw) / DIVIDER;
+    mp.Acc_x_Raw  = g * (static_cast<float>(Acc_x_Raw) / DIVIDER);
+    mp.Acc_y_Raw  = g * (static_cast<float>(Acc_y_Raw) / DIVIDER);
+    mp.Acc_z_Raw  = g * (static_cast<float>(Acc_z_Raw) / DIVIDER);
 
     mpu.getRotation(&Gyro_x_Raw, &Gyro_y_Raw, &Gyro_z_Raw);
     mp.Gyro_x_Raw = static_cast<float>(Gyro_x_Raw);
