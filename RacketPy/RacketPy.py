@@ -751,28 +751,18 @@ def simRealTime(rec, fig, winLen, classifier, TsampleMS=20):
     pred = []
     linewidth = 1.0
     scatterSize = 0.5
-    smax = 1000
-    dmu = 20
+    smax = np.max(t_win)
+    dmu = 50
     while idxEnd <= idxMax:
         # print(idxBeg, idxEnd)
         accXMin = np.min(rec[0]['acc'][idxBeg:idxEnd, 0])
 
-        if accXMin >= -20 and accXMin <= -5:
-            """
+        if accXMin <= -5:
             accXMinIdx = np.argmin(rec[0]['acc'][idxBeg:idxEnd, 0])
-
-            # Stretch the window around the minimum:
-            idxBeg = accXMinIdx - int(winLen / 2)
-            idxEnd = accXMinIdx + int(winLen / 2)
-
-            if idxBeg < 0 :
-                idxBeg = 0
-                idxEnd = idxBeg + int(winLen)
-            """
 
             # Fit record:
             accXOpt = fitGauss2b(t_win, rec[0]['acc'][idxBeg:idxEnd, 0],
-                                  s_max=smax, dmu=dmu)
+                                 s_max=smax, dmu=dmu)
             accYOpt = fitGauss1b(t_win, rec[0]['acc'][idxBeg:idxEnd, 1],
                                  s_max=smax, dmu=dmu)
             accZOpt = []
@@ -785,7 +775,7 @@ def simRealTime(rec, fig, winLen, classifier, TsampleMS=20):
 
             angXOpt = []
             angYOpt = fitGauss1b(t_win, rec[0]['ang'][idxBeg:idxEnd, 1],
-                                  s_max=smax, dmu=dmu)
+                                 s_max=smax, dmu=dmu)
             angZOpt = []
 
             # Create residual matrix with records:
@@ -796,38 +786,39 @@ def simRealTime(rec, fig, winLen, classifier, TsampleMS=20):
             # Predict:
             x = np.reshape(x, (1, np.shape(x)[0]))
             score = classifier.predict(x)[0]  # should be (1, # Feautures)
-            pred.append({'id': rec[0]['id'], 'idxbeg': idxBeg,
-                         'idxend': idxEnd, 'pred_score': score, 'x': x})
+            if score > 0:
+                pred.append({'id': rec[0]['id'], 'idxbeg': idxBeg,
+                             'idxend': idxEnd, 'pred_score': score, 'x': x})
 
-            # Update times in options:
-            t = rec[0]['t'][idxBeg:idxEnd, 0]
-            t_min = np.min(t)
-            accXOpt[1] = t_min
-            accXOpt[4] = t_min
-            accYOpt[1] = t_min
-            gyroYOpt[1] = t_min
-            gyroYOpt[4] = t_min
-            gyroZOpt[1] = t_min
-            angYOpt[1] = t_min
+                # Update times in options:
+                t = rec[0]['t'][idxBeg:idxEnd, 0]
+                t_min = np.min(t)
+                accXOpt[1] = accXOpt[1] + t_min
+                accXOpt[4] = accXOpt[4] + t_min
+                accYOpt[1] = accYOpt[1] + t_min
+                gyroYOpt[1] = gyroYOpt[1] + t_min
+                gyroYOpt[4] = gyroYOpt[4] + t_min
+                gyroZOpt[1] = gyroZOpt[1] + t_min
+                angYOpt[1] = angYOpt[1] + t_min
 
-            # Plot record's fit:
-            plt.subplot(331)
-            plt.plot(t, gauss2b(t, *accXOpt), 'r-', linewidth=linewidth)
-            plt.scatter(t, rec[0]['acc'][idxBeg:idxEnd, 0], s=scatterSize)
-            plt.subplot(334)
-            plt.plot(t, gauss1b(t, *accYOpt), 'r-', linewidth=linewidth)
-            plt.scatter(t, rec[0]['acc'][idxBeg:idxEnd, 1], s=scatterSize)
+                # Plot record's fit:
+                plt.subplot(331)
+                plt.plot(t, gauss2b(t, *accXOpt), 'r-', linewidth=linewidth)
+                plt.scatter(t, rec[0]['acc'][idxBeg:idxEnd, 0], s=scatterSize)
+                plt.subplot(334)
+                plt.plot(t, gauss1b(t, *accYOpt), 'r-', linewidth=linewidth)
+                plt.scatter(t, rec[0]['acc'][idxBeg:idxEnd, 1], s=scatterSize)
 
-            plt.subplot(335)
-            plt.plot(t, gauss2b(t, *gyroYOpt), 'r-', linewidth=linewidth)
-            plt.scatter(t, rec[0]['gyro'][idxBeg:idxEnd, 1], s=scatterSize)
-            plt.subplot(338)
-            plt.plot(t, gauss1b(t, *gyroZOpt), 'r-', linewidth=linewidth)
-            plt.scatter(t, rec[0]['gyro'][idxBeg:idxEnd, 2], s=scatterSize)
+                plt.subplot(335)
+                plt.plot(t, gauss2b(t, *gyroYOpt), 'r-', linewidth=linewidth)
+                plt.scatter(t, rec[0]['gyro'][idxBeg:idxEnd, 1], s=scatterSize)
+                plt.subplot(338)
+                plt.plot(t, gauss1b(t, *gyroZOpt), 'r-', linewidth=linewidth)
+                plt.scatter(t, rec[0]['gyro'][idxBeg:idxEnd, 2], s=scatterSize)
 
-            plt.subplot(336)
-            plt.plot(t, gauss1b(t, *angYOpt), 'r-', linewidth=linewidth)
-            plt.scatter(t, rec[0]['ang'][idxBeg:idxEnd, 1], s=scatterSize)
+                plt.subplot(336)
+                plt.plot(t, gauss1b(t, *angYOpt), 'r-', linewidth=linewidth)
+                plt.scatter(t, rec[0]['ang'][idxBeg:idxEnd, 1], s=scatterSize)
 
         # Move fit window
         idxBeg = idxBeg + winStep
@@ -924,7 +915,7 @@ def main(stateprint=False):
     for i in range(np.shape(X_ts)[0]):
         x = np.reshape(X_ts[i], (1, np.shape(X_ts)[1]))
         print('pred label:\t', clf.predict(x)[0],
-              '; true label:\t', y_ts[i], '; #Features =', np.shape(x))
+              '; true label:\t', y_ts[i])
     print("Prediction score: ", clf.score(X_ts, y_ts))
     # print(np.shape(clf.coef_), clf.coef_)
     # print(clf.intercept_)
@@ -934,8 +925,8 @@ def main(stateprint=False):
     # * 4) Predict as in real online dataset
     # *
     # **********************************************************************
-    # Read dataset
-    idxs = [6, 13, 74, 93]
+    print('--------------- Testing records ---------------')
+    idxs = [6, 13, 74, 93, 66, 31, 22]
     for idx in idxs:
         rec, rec_b = readDataSet(dataSetFileName, labelsFileName,
                                  idxstart=idx-1, idxend=idx)
