@@ -98,7 +98,7 @@ def readDataLog(fileName):
 
 
 # -----------------------------------------------------------------------------
-def readDataSet(recordsFileName, labelsFileName, numfiles=1):
+def readDataSet(recordsFileName, labelsFileName, idxstart=0, idxend=1):
     """
     Reads consecutive files to good and bad records.
     """
@@ -110,7 +110,7 @@ def readDataSet(recordsFileName, labelsFileName, numfiles=1):
            't': [], 'acc': [], 'gyro': [], 'ang': []}  # record
     grecs = []  # good records
     brecs = []  # bad records
-    for i in range(numfiles):
+    for i in range(idxstart, idxend):
         rec['id'] = i+1
         rec['score'] = scrs[i]['score']
         rec['t'], rec['acc'], rec['gyro'], rec['ang'] = \
@@ -120,7 +120,7 @@ def readDataSet(recordsFileName, labelsFileName, numfiles=1):
             grecs.append(cp.deepcopy(rec))
         else:
             brecs.append(cp.deepcopy(rec))
-    return grecs, brecs, scrs
+    return grecs, brecs
 
 
 # -----------------------------------------------------------------------------
@@ -742,19 +742,17 @@ def main(stateprint=False):
     dataSetFileName = './DataSets/DataLog'
     labelsFileName = './DataSets/Labels.txt'
     N = 93  # number of data sets
-    grecs, brecs, scrs = readDataSet(dataSetFileName, labelsFileName,
-                                     numfiles=N)
+    grecs, brecs = readDataSet(dataSetFileName, labelsFileName,
+                                     idxend=N)
 
     # Correct and safe (be carefool - look in to function):
     # correctAndSafe(grecs, brecs, setName='./DataLog')
     # return
 
     # Show number of bad and good data sets:
-    scores = np.array([int(s['score']) for s in scrs])
-    unique, counts = np.unique(scores, return_counts=True)
-    print("Score: %s; Count: %s" % (unique[0], counts[0]))
-    print("Score: %s; Count: %s" % (unique[1], counts[1]))
-    print('Total Count: ', counts[0] + counts[1])
+    print("Score: %s; Count: %s" % (grecs[0]['score'], len(grecs)))
+    print("Score: %s; Count: %s" % (brecs[0]['score'], len(brecs)))
+    print('Total Count: ', len(grecs) + len(brecs))
 
     # Center good/bad train records:
     centerRecords(grecs)
@@ -805,15 +803,112 @@ def main(stateprint=False):
     # Proove classification on test data set
     for i in range(np.shape(X_ts)[0]):
         x = np.reshape(X_ts[i], (1, np.shape(X_ts)[1]))
-        print('id:\t', i+1, '; pred label:\t', clf.predict(x)[0],
-              '; true label:\t', y_ts[i])
+        print('pred label:\t', clf.predict(x)[0],
+              '; true label:\t', y_ts[i], '; #Feautures =', np.shape(x))
     print("Prediction score: ", clf.score(X_ts, y_ts))
     # print(np.shape(clf.coef_), clf.coef_)
     # print(clf.intercept_)
 
     # **********************************************************************
     # *
-    # * 4) Show results
+    # * 4) Predict as in real online dataset
+    # *
+    # **********************************************************************
+    # Read dataset
+    rec, rec_b = readDataSet(dataSetFileName, labelsFileName,
+                                 idxstart=5, idxend=6)
+    appendRecord(rec, rec_b)
+    print('Testing record with id: %s and len %s ans score %s'
+          % (rec[0]['id'], np.shape(rec[0]['t'])[0], rec[0]['score']))
+    t_win = np.arange(winLen)
+    idxMax = np.shape(rec[0]['t'])[0]
+    idxBeg = int(0)
+    idxEnd = idxBeg + int(winLen)
+    k = 1.1  # step divider
+    pred = []
+    fig_test = plt.figure('Test as in real')
+    linewidth = 1.0
+    scatterSize = 0.5
+    while idxEnd <= idxMax:
+        # print(idxBeg, idxEnd)
+
+        # Fit record:
+        accXOpt = fitGauss2b(t_win, rec[0]['acc'][idxBeg:idxEnd, 0],
+                             s_max=winLen * 20, dmu=10)
+        accYOpt = fitGauss1b(t_win, rec[0]['acc'][idxBeg:idxEnd, 1],
+                             s_max=1000, dmu=20)
+        accZOpt = fitGauss2b(t_win, rec[0]['acc'][idxBeg:idxEnd, 2],
+                             s_max=1000, dmu=20)
+
+        gyroXOpt = fitGauss1b(t_win, rec[0]['gyro'][idxBeg:idxEnd, 0],
+                              s_max=1000, dmu=20)
+        gyroYOpt = fitGauss2b(t_win, rec[0]['gyro'][idxBeg:idxEnd, 1],
+                              s_max=1000, dmu=20)
+        gyroZOpt = fitGauss1b(t_win, rec[0]['gyro'][idxBeg:idxEnd, 2],
+                              s_max=1000, dmu=20)
+
+        angXOpt = fitGauss2b(t_win, rec[0]['ang'][idxBeg:idxEnd, 0],
+                             s_max=1000, dmu=20)
+        angYOpt = fitGauss1b(t_win, rec[0]['ang'][idxBeg:idxEnd, 1],
+                             s_max=1000, dmu=20)
+        angZOpt = fitGauss1b(t_win, rec[0]['ang'][idxBeg:idxEnd, 2],
+                             s_max=1000, dmu=20)
+
+        # Create residual matrix with records:
+        x = createResidual(accXOpt, accYOpt, accZOpt,
+                           gyroXOpt, gyroYOpt, gyroZOpt,
+                           angXOpt, angYOpt, angZOpt)
+
+        # Predict:
+        x = np.reshape(x, (1, np.shape(x)[0]))
+        score = clf.predict(x)[0]  # should be (1, # Feautures)
+        pred.append({'id': rec[0]['id'], 'idxbeg': idxBeg, 'idxend': idxEnd,
+                    'pred_score': score, 'x': x})
+
+        # Update times in options:
+        t = rec[0]['t'][idxBeg:idxEnd, 0]
+        t_min = np.min(t)
+        accXOpt[1] = t_min
+        accXOpt[4] = t_min
+        accYOpt[1] = t_min
+        gyroXOpt[1] = t_min
+        gyroYOpt[1] = t_min
+        gyroYOpt[4] = t_min
+        angYOpt[1] = t_min
+
+        # Plot record's fit:
+        plt.subplot(331)
+        plt.plot(t, gauss2b(t, *accXOpt), 'r-', linewidth=linewidth)
+        plt.scatter(t, rec[0]['acc'][idxBeg:idxEnd, 0], s=scatterSize)
+        plt.subplot(334)
+        plt.plot(t, gauss1b(t, *accYOpt), 'r-', linewidth=linewidth)
+        plt.scatter(t, rec[0]['acc'][idxBeg:idxEnd, 1], s=scatterSize)
+
+        plt.subplot(335)
+        plt.plot(t, gauss2b(t, *gyroYOpt), 'r-', linewidth=linewidth)
+        plt.scatter(t, rec[0]['gyro'][idxBeg:idxEnd, 1], s=scatterSize)
+        plt.subplot(338)
+        plt.plot(t, gauss1b(t, *gyroZOpt), 'r-', linewidth=linewidth)
+        plt.scatter(t, rec[0]['gyro'][idxBeg:idxEnd, 2], s=scatterSize)
+
+        plt.subplot(336)
+        plt.plot(t, gauss1b(t, *angYOpt), 'r-', linewidth=linewidth)
+        plt.scatter(t, rec[0]['ang'][idxBeg:idxEnd, 1], s=scatterSize)
+
+        # Move fit window
+        idxBeg = idxBeg + int(winLen / k)
+        idxEnd = idxBeg + int(winLen)
+
+    for p in pred:
+        print(p['id'], p['idxbeg'], p['idxend'], p['pred_score'])
+
+    plotRecords(fig_test, rec, bad=True)
+    plt.show()
+    return
+
+    # **********************************************************************
+    # *
+    # * 5) Show results
     # *
     # **********************************************************************
     # Plot fitted good records:
