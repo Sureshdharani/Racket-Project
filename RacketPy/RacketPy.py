@@ -322,6 +322,7 @@ def saveRecordOriginally(record, fileName):
         file.write(line)
     file.close()
 
+
 # -----------------------------------------------------------------------------
 def gauss1b(x, A, mu, s, b):
     """
@@ -713,7 +714,7 @@ def correctAndSafe(grecs, brecs, setName='./DataLog'):
     Corrects some values of datasets and safes it
     """
     # g - vector correction (were wrong in Edisson first)
-    g = 9.808227 # https://www.ptb.de/cartoweb3/SISproject.php
+    g = 9.808227  # https://www.ptb.de/cartoweb3/SISproject.php
     for r in grecs:
         r['acc'] = g * r['acc']
     for r in brecs:
@@ -723,6 +724,109 @@ def correctAndSafe(grecs, brecs, setName='./DataLog'):
         saveRecordOriginally(r, setName + str(r['id']) + '.txt')
     for r in brecs:
         saveRecordOriginally(r, setName + str(r['id']) + '.txt')
+
+
+# -----------------------------------------------------------------------------
+def simRealTime(rec, fig, winLen, classifier, TsampleMS=20):
+    """
+    Goes through record as it would be in the real time application
+    """
+
+    numMatches = 0
+    if rec[0]['score'] > 0:
+        numMatches = 1
+    else:
+        numMatches = 0
+
+    print('Testing record: id: %s ; len %s; exp score %s; exp mathces: %s:'
+          % (rec[0]['id'], np.shape(rec[0]['t'])[0], rec[0]['score'],
+             numMatches))
+    plt.figure(fig.number)
+    t_win = TsampleMS * np.arange(winLen)
+    idxMax = np.shape(rec[0]['t'])[0]
+    idxBeg = int(0)
+    idxEnd = idxBeg + int(winLen)
+    k = 1  # fit window length step divider
+    pred = []
+    linewidth = 1.0
+    scatterSize = 0.5
+    smax = 1000
+    dmu = 1
+    while idxEnd <= idxMax:
+        # print(idxBeg, idxEnd)
+
+        # Fit record:
+        accXOpt = fitGauss2b(t_win, rec[0]['acc'][idxBeg:idxEnd, 0],
+                             s_max=smax, dmu=dmu)
+        accYOpt = fitGauss1b(t_win, rec[0]['acc'][idxBeg:idxEnd, 1],
+                             s_max=smax, dmu=dmu)
+        accZOpt = []
+
+        gyroXOpt = []
+        gyroYOpt = fitGauss2b(t_win, rec[0]['gyro'][idxBeg:idxEnd, 1],
+                              s_max=smax, dmu=dmu)
+        gyroZOpt = fitGauss1b(t_win, rec[0]['gyro'][idxBeg:idxEnd, 2],
+                              s_max=smax, dmu=dmu)
+
+        angXOpt = []
+        angYOpt = fitGauss1b(t_win, rec[0]['ang'][idxBeg:idxEnd, 1],
+                             s_max=smax, dmu=dmu)
+        angZOpt = []
+
+        # Create residual matrix with records:
+        x = createResidual(accXOpt, accYOpt, accZOpt,
+                           gyroXOpt, gyroYOpt, gyroZOpt,
+                           angXOpt, angYOpt, angZOpt)
+
+        # Predict:
+        x = np.reshape(x, (1, np.shape(x)[0]))
+        score = classifier.predict(x)[0]  # should be (1, # Feautures)
+        pred.append({'id': rec[0]['id'], 'idxbeg': idxBeg, 'idxend': idxEnd,
+                    'pred_score': score, 'x': x})
+
+        # Update times in options:
+        t = rec[0]['t'][idxBeg:idxEnd, 0]
+        t_min = np.min(t)
+        accXOpt[1] = t_min
+        accXOpt[4] = t_min
+        accYOpt[1] = t_min
+        gyroYOpt[1] = t_min
+        gyroYOpt[4] = t_min
+        gyroZOpt[1] = t_min
+        angYOpt[1] = t_min
+
+        # Plot record's fit:
+        plt.subplot(331)
+        plt.plot(t, gauss2b(t, *accXOpt), 'r-', linewidth=linewidth)
+        plt.scatter(t, rec[0]['acc'][idxBeg:idxEnd, 0], s=scatterSize)
+        plt.subplot(334)
+        plt.plot(t, gauss1b(t, *accYOpt), 'r-', linewidth=linewidth)
+        plt.scatter(t, rec[0]['acc'][idxBeg:idxEnd, 1], s=scatterSize)
+
+        plt.subplot(335)
+        plt.plot(t, gauss2b(t, *gyroYOpt), 'r-', linewidth=linewidth)
+        plt.scatter(t, rec[0]['gyro'][idxBeg:idxEnd, 1], s=scatterSize)
+        plt.subplot(338)
+        plt.plot(t, gauss1b(t, *gyroZOpt), 'r-', linewidth=linewidth)
+        plt.scatter(t, rec[0]['gyro'][idxBeg:idxEnd, 2], s=scatterSize)
+
+        plt.subplot(336)
+        plt.plot(t, gauss1b(t, *angYOpt), 'r-', linewidth=linewidth)
+        plt.scatter(t, rec[0]['ang'][idxBeg:idxEnd, 1], s=scatterSize)
+
+        # Move fit window
+        idxBeg = idxBeg + int(winLen / k)
+        idxEnd = idxBeg + int(winLen)
+
+    result = []
+    for p in pred:
+        if p['pred_score'] > 0:
+            result.append({'id': p['id'], 'idxbeg': p['idxbeg'],
+                           'idxend': p['idxend'],
+                           'pred_score': p['pred_score']})
+    plotRecords(fig, rec, bad=True)
+    print('Found %s matches:' % len(result))
+    print(result)
 
 
 # -----------------------------------------------------------------------------
@@ -742,8 +846,9 @@ def main(stateprint=False):
     dataSetFileName = './DataSets/DataLog'
     labelsFileName = './DataSets/Labels.txt'
     N = 93  # number of data sets
-    grecs, brecs = readDataSet(dataSetFileName, labelsFileName,
-                                     idxend=N)
+    grecs, brecs = readDataSet(dataSetFileName,
+                               labelsFileName,
+                               idxend=N)
 
     # Correct and safe (be carefool - look in to function):
     # correctAndSafe(grecs, brecs, setName='./DataLog')
@@ -804,7 +909,7 @@ def main(stateprint=False):
     for i in range(np.shape(X_ts)[0]):
         x = np.reshape(X_ts[i], (1, np.shape(X_ts)[1]))
         print('pred label:\t', clf.predict(x)[0],
-              '; true label:\t', y_ts[i], '; #Feautures =', np.shape(x))
+              '; true label:\t', y_ts[i], '; #Features =', np.shape(x))
     print("Prediction score: ", clf.score(X_ts, y_ts))
     # print(np.shape(clf.coef_), clf.coef_)
     # print(clf.intercept_)
@@ -815,93 +920,15 @@ def main(stateprint=False):
     # *
     # **********************************************************************
     # Read dataset
-    rec, rec_b = readDataSet(dataSetFileName, labelsFileName,
-                                 idxstart=5, idxend=6)
-    appendRecord(rec, rec_b)
-    print('Testing record with id: %s and len %s ans score %s'
-          % (rec[0]['id'], np.shape(rec[0]['t'])[0], rec[0]['score']))
-    t_win = np.arange(winLen)
-    idxMax = np.shape(rec[0]['t'])[0]
-    idxBeg = int(0)
-    idxEnd = idxBeg + int(winLen)
-    k = 1.2  # step divider (10% rule)
-    pred = []
-    fig_test = plt.figure('Test as in real')
-    linewidth = 1.0
-    scatterSize = 0.5
-    while idxEnd <= idxMax:
-        # print(idxBeg, idxEnd)
-
-        # Fit record:
-        accXOpt = fitGauss2b(t_win, rec[0]['acc'][idxBeg:idxEnd, 0],
-                             s_max=winLen * 20, dmu=10)
-        accYOpt = fitGauss1b(t_win, rec[0]['acc'][idxBeg:idxEnd, 1],
-                             s_max=1000, dmu=20)
-        accZOpt = fitGauss2b(t_win, rec[0]['acc'][idxBeg:idxEnd, 2],
-                             s_max=1000, dmu=20)
-
-        gyroXOpt = fitGauss1b(t_win, rec[0]['gyro'][idxBeg:idxEnd, 0],
-                              s_max=1000, dmu=20)
-        gyroYOpt = fitGauss2b(t_win, rec[0]['gyro'][idxBeg:idxEnd, 1],
-                              s_max=1000, dmu=20)
-        gyroZOpt = fitGauss1b(t_win, rec[0]['gyro'][idxBeg:idxEnd, 2],
-                              s_max=1000, dmu=20)
-
-        angXOpt = fitGauss2b(t_win, rec[0]['ang'][idxBeg:idxEnd, 0],
-                             s_max=1000, dmu=20)
-        angYOpt = fitGauss1b(t_win, rec[0]['ang'][idxBeg:idxEnd, 1],
-                             s_max=1000, dmu=20)
-        angZOpt = fitGauss1b(t_win, rec[0]['ang'][idxBeg:idxEnd, 2],
-                             s_max=1000, dmu=20)
-
-        # Create residual matrix with records:
-        x = createResidual(accXOpt, accYOpt, accZOpt,
-                           gyroXOpt, gyroYOpt, gyroZOpt,
-                           angXOpt, angYOpt, angZOpt)
-
-        # Predict:
-        x = np.reshape(x, (1, np.shape(x)[0]))
-        score = clf.predict(x)[0]  # should be (1, # Feautures)
-        pred.append({'id': rec[0]['id'], 'idxbeg': idxBeg, 'idxend': idxEnd,
-                    'pred_score': score, 'x': x})
-
-        # Update times in options:
-        t = rec[0]['t'][idxBeg:idxEnd, 0]
-        t_min = np.min(t)
-        accXOpt[1] = t_min
-        accXOpt[4] = t_min
-        accYOpt[1] = t_min
-        gyroXOpt[1] = t_min
-        gyroYOpt[1] = t_min
-        gyroYOpt[4] = t_min
-        angYOpt[1] = t_min
-
-        # Plot record's fit:
-        plt.subplot(331)
-        plt.plot(t, gauss2b(t, *accXOpt), 'r-', linewidth=linewidth)
-        plt.scatter(t, rec[0]['acc'][idxBeg:idxEnd, 0], s=scatterSize)
-        plt.subplot(334)
-        plt.plot(t, gauss1b(t, *accYOpt), 'r-', linewidth=linewidth)
-        plt.scatter(t, rec[0]['acc'][idxBeg:idxEnd, 1], s=scatterSize)
-
-        plt.subplot(335)
-        plt.plot(t, gauss2b(t, *gyroYOpt), 'r-', linewidth=linewidth)
-        plt.scatter(t, rec[0]['gyro'][idxBeg:idxEnd, 1], s=scatterSize)
-        plt.subplot(338)
-        plt.plot(t, gauss1b(t, *gyroZOpt), 'r-', linewidth=linewidth)
-        plt.scatter(t, rec[0]['gyro'][idxBeg:idxEnd, 2], s=scatterSize)
-
-        plt.subplot(336)
-        plt.plot(t, gauss1b(t, *angYOpt), 'r-', linewidth=linewidth)
-        plt.scatter(t, rec[0]['ang'][idxBeg:idxEnd, 1], s=scatterSize)
-
-        # Move fit window
-        idxBeg = idxBeg + int(winLen / k)
-        idxEnd = idxBeg + int(winLen)
-
-    for p in pred:
-        print(p['id'], p['idxbeg'], p['idxend'], p['pred_score'])
-    plotRecords(fig_test, rec, bad=True)
+    idxs = [6, 13, 74, 93]
+    for idx in idxs:
+        rec, rec_b = readDataSet(dataSetFileName, labelsFileName,
+                                 idxstart=idx-1, idxend=idx)
+        appendRecord(rec, rec_b)
+        fig_test = plt.figure('Test as in real: id = ' + str(rec[0]['id']))
+        simRealTime(rec, fig=fig_test, winLen=winLen,
+                    classifier=clf, TsampleMS=20)
+        print('---------------')
 
     # **********************************************************************
     # *
