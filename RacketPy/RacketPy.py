@@ -824,7 +824,7 @@ def main(stateprint=False):
     idxMax = np.shape(rec[0]['t'])[0]
     idxBeg = int(0)
     idxEnd = idxBeg + int(winLen)
-    k = 1.1  # step divider
+    k = 1.2  # step divider (10% rule)
     pred = []
     fig_test = plt.figure('Test as in real')
     linewidth = 1.0
@@ -901,10 +901,7 @@ def main(stateprint=False):
 
     for p in pred:
         print(p['id'], p['idxbeg'], p['idxend'], p['pred_score'])
-
     plotRecords(fig_test, rec, bad=True)
-    plt.show()
-    return
 
     # **********************************************************************
     # *
