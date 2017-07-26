@@ -758,7 +758,7 @@ def simRealTime(rec, fig, winLen, classifier, TsampleMS=20):
         accXMin = np.min(rec[0]['acc'][idxBeg:idxEnd, 0])
 
         if accXMin <= -5:
-            accXMinIdx = np.argmin(rec[0]['acc'][idxBeg:idxEnd, 0])
+            # accXMinIdx = np.argmin(rec[0]['acc'][idxBeg:idxEnd, 0])
 
             # Fit record:
             accXOpt = fitGauss2b(t_win, rec[0]['acc'][idxBeg:idxEnd, 0],
