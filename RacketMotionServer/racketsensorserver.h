@@ -104,27 +104,22 @@ signals:
     void sendState(const QString errorDescr);
     void sendSensData(const SensBuffer sensData, const SensBuffer fitData);
 
-private:  // functions
-    /* Fits the sensor data and returns new filled array
-     *  Input:
-     *      data - sensor data
-     *      N - window size to fit
-     *  Return:
-     *      Fitted sensor data
-     */
-    SensBuffer _fitSensData(const SensBuffer data, const unsigned int N = 100);
+private:  // private functions
+    // Fits sensor data:
+    SensBuffer _fit(const SensBuffer fitData);
     static void _quat2euler(const float q_w, const float q_x,
                             const float q_y, const float q_z,
                             float *t_x, float *t_y, float *t_z);
-    void _appendToBuffer(SensBuffer *sensData, SensBuffer *fitData, const QString data);
+    void _appendToBuffer(SensBuffer *sensData, const QString data);
 
-private:  // variables
+private:  // private variables
     bool _isFirstPacket;  // first packet flag
     double _startTime;
     QUdpSocket* _socket;
     SensBuffer _sensData;    // raw sensor data
     SensBuffer _fitData;  // fitted sensor data
     unsigned int _plotCnt;  // plotting counter
+    unsigned int _fitSampleCnt;  // fit sample counter
 };
 
 #endif // RACKETSENSORCLIENT_H

@@ -18,6 +18,7 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     isEdisson = true;
 
     _plotCnt = 0;
+    _fitSampleCnt = 0;
 
     connect(_socket, SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
 }
@@ -46,13 +47,24 @@ void RacketSensorServer::readPendingDatagrams()
 
     QString data(buffer);
 
-    _appendToBuffer(&_sensData, &_fitData, data);
-    _plotCnt++;
+    _appendToBuffer(&_sensData, data);
 
-    // Fit sensor data (do it only if the buffer accumulated enough data):
-    // _fitData = _fitSensData(_sensData, fitWinLen);
+    // Process fit data buffer by moving fit window over the sensor buffer:
+    _fitSampleCnt++;
+    if (_fitSampleCnt >= fitWinLen) {
+        // Copy last fitWinLen points from sensor buffer:
+        for (unsigned int i = _sensData.size() - fitWinLen; i < _sensData.size(); i++)
+            _fitData.push_back(_sensData.at(i));
+
+        // Fit the window:
+        _fitData = _fit(_fitData);
+
+        // Reset counter:
+         _fitSampleCnt = 0;
+    }
 
     // Plot the data according to samples to plot:
+    _plotCnt++;
     if (_plotCnt >= SAMPLE_PLOT) {
         emit(sendSensData(_sensData, _fitData));
         _plotCnt = 0;
@@ -61,16 +73,12 @@ void RacketSensorServer::readPendingDatagrams()
 
 //-----------------------------------------------------------------------------
 void RacketSensorServer::_appendToBuffer(SensBuffer *sensData,
-                                         SensBuffer *fitData,
                                          const QString data)
 {
     // Delete packets from beggining of the buffer
     // if the size exceeds its dimensions:
     if (sensData->size() >= MAX_BUFF_SIZE)
         sensData->pop_front();
-
-    if (fitData->size() >= fitWinLen)
-        fitData->pop_front();
 
     // Append new element
     SensPacket p;
@@ -87,16 +95,11 @@ void RacketSensorServer::_appendToBuffer(SensBuffer *sensData,
     }
 
     sensData->push_back(p);
-    fitData->push_back(p);
 }
 
 //-----------------------------------------------------------------------------
-SensBuffer RacketSensorServer::_fitSensData(const SensBuffer data,
-                                             const unsigned int N)
-{
-    if (data.size() < N)
-        return data;
-
+SensBuffer RacketSensorServer::_fit(const SensBuffer fitData) {
+    /*
     // Create containers for fit:
     auto fitted = SensBuffer(N);
 
@@ -154,6 +157,10 @@ SensBuffer RacketSensorServer::_fitSensData(const SensBuffer data,
         fitted.at(i).gyro.z = gyroZ.at(i);
     }
 
+    return fitted;
+    */
+
+    auto fitted = SensBuffer(fitData.size());
     return fitted;
 }
 

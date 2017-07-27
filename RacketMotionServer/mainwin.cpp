@@ -190,10 +190,6 @@ void MainWin::_setUpPlot(QCustomPlot *plot, const QString timeFormat,
     plot->yAxis->setRange(-1, 1);
     plot->xAxis->setLabel(xLabel);
     plot->yAxis->setLabel(yLabel);
-
-    // make left and bottom axes transfer their ranges to right and top axes:
-    // connect(plot->xAxis, SIGNAL(rangeChanged(QCPRange)), plot->xAxis2, SLOT(setRange(QCPRange)));
-    // connect(plot->yAxis, SIGNAL(rangeChanged(QCPRange)), plot->yAxis2, SLOT(setRange(QCPRange)));
 }
 
 //-----------------------------------------------------------------------------
@@ -211,10 +207,12 @@ void MainWin::_appendToPlot(QCustomPlot *plot,
   plot->graph(0)->rescaleValueAxis(true);
 
   // append fitted data:
-  plot->graph(1)->data()->clear();
-  for (unsigned int i = 0; i < fitKey.size(); i++)
-      plot->graph(1)->addData(fitKey.at(i), fitValue.at(i));
-  plot->graph(1)->rescaleValueAxis(true);
+  if (!fitValue.empty()) {
+      plot->graph(1)->data()->clear();
+      for (unsigned int i = 0; i < fitKey.size(); i++)
+          plot->graph(1)->addData(fitKey.at(i), fitValue.at(i));
+      plot->graph(1)->rescaleValueAxis(true);
+  }
 
   // make key axis range scroll with the data:
   plot->xAxis->setRange(key, scrollRange, Qt::AlignRight);
@@ -230,34 +228,30 @@ void MainWin::_updatePlots(const SensBuffer sensData, const SensBuffer fitData,
 
     unsigned int N = fitData.size();
     std::vector<double> tFit(N);
-    std::vector<double> accX(N), accY(N), accZ(N);
-    std::vector<double> gyroX(N), gyroY(N), gyroZ(N);
-    std::vector<double> angX(N), angY(N), angZ(N);
+    std::vector<double> accX(N), accY(N), accZ;
+    std::vector<double> gyroX, gyroY(N), gyroZ(N);
+    std::vector<double> angX, angY(N), angZ;
 
     for(unsigned int i = 0; i < tFit.size(); i++) {
         tFit.at(i) = fitData.at(i).t;
 
         accX.at(i) = fitData.at(i).acc.x;
         accY.at(i) = fitData.at(i).acc.y;
-        accZ.at(i) = fitData.at(i).acc.z;
 
-        gyroX.at(i) = fitData.at(i).gyro.x;
         gyroY.at(i) = fitData.at(i).gyro.y;
         gyroZ.at(i) = fitData.at(i).gyro.z;
 
-        angX.at(i) = fitData.at(i).ang.x;
         angY.at(i) = fitData.at(i).ang.y;
-        angZ.at(i) = fitData.at(i).ang.z;
     }
     _appendToPlot(ui->wid11, t, packet.acc.x, tFit, accX, scrollRange);
-    _appendToPlot(ui->wid21, t, packet.acc.y, tFit, accX, scrollRange);
-    _appendToPlot(ui->wid31, t, packet.acc.z, tFit, accX, scrollRange);
+    _appendToPlot(ui->wid21, t, packet.acc.y, tFit, accY, scrollRange);
+    _appendToPlot(ui->wid31, t, packet.acc.z, tFit, accZ, scrollRange);
 
-    _appendToPlot(ui->wid12, t, packet.gyro.x, tFit, accX, scrollRange);
-    _appendToPlot(ui->wid22, t, packet.gyro.y, tFit, accX, scrollRange);
-    _appendToPlot(ui->wid32, t, packet.gyro.z, tFit, accX, scrollRange);
+    _appendToPlot(ui->wid12, t, packet.gyro.x, tFit, gyroX, scrollRange);
+    _appendToPlot(ui->wid22, t, packet.gyro.y, tFit, gyroY, scrollRange);
+    _appendToPlot(ui->wid32, t, packet.gyro.z, tFit, gyroZ, scrollRange);
 
-    _appendToPlot(ui->wid13, t, packet.ang.x, tFit, accX, scrollRange);
-    _appendToPlot(ui->wid23, t, packet.ang.y, tFit, accX, scrollRange);
-    _appendToPlot(ui->wid33, t, packet.ang.z, tFit, accX, scrollRange);
+    _appendToPlot(ui->wid13, t, packet.ang.x, tFit, angX, scrollRange);
+    _appendToPlot(ui->wid23, t, packet.ang.y, tFit, angY, scrollRange);
+    _appendToPlot(ui->wid33, t, packet.ang.z, tFit, angZ, scrollRange);
 }
