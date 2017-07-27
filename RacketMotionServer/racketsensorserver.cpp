@@ -19,6 +19,8 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
 
     _plotCnt = 0;
     _fitSampleCnt = 0;
+    _isProcess = true;
+    _saveCnt = 0;
 
     connect(_socket, SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
 }
@@ -33,9 +35,16 @@ void RacketSensorServer::setListenIPPort(const quint16 Port) {
 }
 
 //-----------------------------------------------------------------------------
-void RacketSensorServer::readPendingDatagrams()
-{
-    // when data comes in
+void RacketSensorServer::readPendingDatagrams() {
+    #ifdef LOG
+    if (!_isProcess) {
+        QDir dir;
+        emit(sendState("Data is saved to: " + dir.absolutePath()));
+        return;
+    }
+    #endif
+
+    // When data comes in
     QByteArray buffer;
     buffer.resize(_socket->pendingDatagramSize());
 
@@ -50,7 +59,6 @@ void RacketSensorServer::readPendingDatagrams()
     _appendToBuffer(&_sensData, data);
 
     // Process fit data buffer by moving fit window over the sensor buffer:
-    /*
     _fitSampleCnt++;
     if (_fitSampleCnt >= fitWinLen) {
         // Copy last fitWinLen points from sensor buffer:
@@ -63,7 +71,6 @@ void RacketSensorServer::readPendingDatagrams()
         // Reset counter:
          _fitSampleCnt = 0;
     }
-    */
 
     // Plot the data according to samples to plot:
     _plotCnt++;
@@ -71,6 +78,15 @@ void RacketSensorServer::readPendingDatagrams()
         emit(sendSensData(_sensData, _fitData));
         _plotCnt = 0;
     }
+
+    #ifdef LOG
+    _saveCnt++;
+    if (_saveCnt > 1000) {
+        _saveBuffer(_sensData);
+        _isProcess = false;
+        _saveCnt = 0;
+    }
+    #endif
 }
 
 //-----------------------------------------------------------------------------
@@ -121,7 +137,6 @@ SensBuffer RacketSensorServer::_fit(const SensBuffer fitData) {
 
         angY.at(i) = fitData.at(i).ang.y;
     }
-    return fitted;
 
     // Fit the data:
     accX = MathFit::fitGauss1b(time, accX);
@@ -136,6 +151,7 @@ SensBuffer RacketSensorServer::_fit(const SensBuffer fitData) {
 
     // Pack fitted data to fitted array:
     for(unsigned int i = 0; i < time.size(); i++) {
+        fitted.at(i).t = time.at(i);
         fitted.at(i).acc.x = accX.at(i);
         fitted.at(i).acc.y = accY.at(i);
 
@@ -250,6 +266,32 @@ SensPacket RacketSensorServer::processInPacketEdisson(const QString data,
     }
 
     return p;
+}
+
+//-----------------------------------------------------------------------------
+void RacketSensorServer::_saveBuffer(const SensBuffer data) {
+    std::ofstream logFile;
+    std::string del = "\t";
+    logFile.open ("BufferLog.txt");
+    logFile << "t" << del
+            << "accX" << del << "accY" << del << "accZ" << del
+            << "gyroX" << del << "gyroY" << del << "gyroZ" << del
+            << "angX" << del << "angY" << del << "angZ" << del
+            << "\n";
+    for (unsigned int i = 0; i < data.size(); i++) {
+        logFile << data.at(i).t << del
+                << data.at(i).acc.x << del
+                << data.at(i).acc.y << del
+                << data.at(i).acc.z << del
+                << data.at(i).gyro.x << del
+                << data.at(i).gyro.y << del
+                << data.at(i).gyro.z << del
+                << data.at(i).ang.x << del
+                << data.at(i).ang.y << del
+                << data.at(i).ang.z << del
+                << "\n";
+    }
+   logFile.close();
 }
 
 //-----------------------------------------------------------------------------

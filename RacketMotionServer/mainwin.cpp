@@ -135,16 +135,14 @@ void MainWin::rcvSensData(const SensBuffer sensData,
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::showState(const QString state)
-{
+void MainWin::showState(const QString state) {
     QMessageBox::critical(this, "State notification", state, 1, 0);
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::setUpGUI()
-{
+void MainWin::setUpGUI() {
     ui->localPortLnEd->setValidator(new QIntValidator(1, 65536, this));
-    ui->pltBufSzLnEd->setValidator(new QIntValidator(5, 1000, this));
+    ui->pltBufSzLnEd->setValidator(new QIntValidator(5, 1000000000, this));
     ui->fitWinLenLnEd->setValidator(new QIntValidator(10, 1000, this));
 }
 
@@ -243,6 +241,7 @@ void MainWin::_updatePlots(const SensBuffer sensData, const SensBuffer fitData,
 
         angY.at(i) = fitData.at(i).ang.y;
     }
+
     _appendToPlot(ui->wid11, t, packet.acc.x, tFit, accX, scrollRange);
     _appendToPlot(ui->wid21, t, packet.acc.y, tFit, accY, scrollRange);
     _appendToPlot(ui->wid31, t, packet.acc.z, tFit, accZ, scrollRange);

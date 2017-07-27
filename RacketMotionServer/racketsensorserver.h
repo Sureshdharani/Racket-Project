@@ -2,13 +2,17 @@
 #define RACKETSENSORSERVER_H
 
 #include <QUdpSocket>
+#include <QDir>
+#include <ostream>
+#include <string>
 #include <deque>
 #include <fitfunctions.h>
 #include <stdio.h>
 #include <string.h>
 
+// #define LOG
 #define MAX_BUFF_SIZE 1000  // sensor packets buffer size
-#define SAMPLE_PLOT 100  // eacht n-th sample to plot
+#define SAMPLE_PLOT 10  // each n-th sample to plot
 
 
 // Represents 3D vector
@@ -111,8 +115,11 @@ private:  // private functions
                             const float q_y, const float q_z,
                             float *t_x, float *t_y, float *t_z);
     void _appendToBuffer(SensBuffer *sensData, const QString data);
+    void _saveBuffer(const SensBuffer data);
 
 private:  // private variables
+    bool _isProcess;
+    unsigned int _saveCnt;
     bool _isFirstPacket;  // first packet flag
     double _startTime;
     QUdpSocket* _socket;

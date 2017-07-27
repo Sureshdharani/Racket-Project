@@ -202,7 +202,7 @@
             <string extracomment="Local Port"/>
            </property>
            <property name="text">
-            <string>10</string>
+            <string>20000</string>
            </property>
           </widget>
          </item>

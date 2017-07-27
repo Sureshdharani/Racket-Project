@@ -298,14 +298,13 @@ string Send_MsgStr(Motion_param mp) {
 }
 
 // ----------------------------------------------------------------------------
-void SendUDP(vector<Motion_param> someRec, const ClientSettings settings) {
+void SendUDP(const int sock, vector<Motion_param> someRec,
+             const ClientSettings settings) {
     string Timestamp = (to_string)(Get_TimeSinceEpochMillis());
-    int sock, length;
+    int length;
     struct sockaddr_in server;
     struct hostent *hp;
     char buffer1[settings.udpBufLen];  // NOLINT()
-
-    sock = socket(AF_INET, SOCK_DGRAM, 0);
 
     if (sock < 0)
         throw std::string("Wrong socket");
@@ -327,8 +326,9 @@ void SendUDP(vector<Motion_param> someRec, const ClientSettings settings) {
         msg = Send_MsgStr(someRec.at(i));
         memcpy(buffer1, msg.c_str(), msg.size() + 1);
 
-        // std::cout<<"Message"<<msg<<"\n"<<std::endl;
-        sendto(sock, buffer1, settings.udpBufLen, 0,
+    // std::cout<<"Message"<<msg<<"\n"<<std::endl;
+    // usleep(200000);
+    sendto(sock, buffer1, settings.udpBufLen, 0,
                (struct sockaddr *)&server, length);
         // printf(" Message %s\n",msg);
         // std::cout<<"Message"<<msg<<"\n"<<std::endl;
@@ -504,6 +504,7 @@ int main(int argc, const char* argv[]) {
 
     try {
         Motion_param Mp;
+        int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
         // Asynchronouse console input thread:
         std::atomic<bool> run(true);
@@ -526,7 +527,7 @@ int main(int argc, const char* argv[]) {
 
             if (Buffer_count >= Buffer_size && set.isSend) {
                 t1 = std::chrono::high_resolution_clock::now();
-                SendUDP(someRec, set);
+                SendUDP(sock, someRec, set);
 
                 // Clear internal data vector:
                 Buffer_count = 0;
