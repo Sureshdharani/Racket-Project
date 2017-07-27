@@ -235,7 +235,7 @@
             <string extracomment="Local Port"/>
            </property>
            <property name="text">
-            <string>100</string>
+            <string>141</string>
            </property>
           </widget>
          </item>
@@ -287,7 +287,7 @@
               </sizepolicy>
              </property>
              <property name="text">
-              <string>Total Data Points:</string>
+              <string>Plotted points:</string>
              </property>
             </widget>
            </item>
@@ -320,7 +320,7 @@
               </sizepolicy>
              </property>
              <property name="text">
-              <string>Transfer Time, ms:</string>
+              <string>Transfer time, ms:</string>
              </property>
             </widget>
            </item>
@@ -353,7 +353,7 @@
               </sizepolicy>
              </property>
              <property name="text">
-              <string>Processing Time, ms:</string>
+              <string>Processing time, ms:</string>
              </property>
             </widget>
            </item>
@@ -386,7 +386,7 @@
               </sizepolicy>
              </property>
              <property name="text">
-              <string>Plot Time, ms:</string>
+              <string>Plot time, ms:</string>
              </property>
             </widget>
            </item>

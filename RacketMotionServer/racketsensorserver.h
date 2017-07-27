@@ -7,7 +7,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#define BUFF_SIZE 1000  // sensor packets buffer size
+#define MAX_BUFF_SIZE 1000  // sensor packets buffer size
+#define SAMPLE_PLOT 5  // eacht n-th sample to plot
+
 
 // Represents 3D vector
 struct Vec3D {
@@ -122,6 +124,7 @@ private:  // variables
     QUdpSocket* _socket;
     SensBuffer _sensData;    // raw sensor data
     SensBuffer _fitData;  // fitted sensor data
+    unsigned int _plotCnt;  // plotting counter
 };
 
 #endif // RACKETSENSORCLIENT_H

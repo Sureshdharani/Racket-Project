@@ -15,6 +15,9 @@ typedef matrix<double,4,1> normPar;  // normal destribution parmeters
 // ----------------------------------------------------------------------------------------
 namespace MathFit {
 
+    // Calculates mean value of the vector:
+    double mean(std::vector<double> vec);
+
     // We will use this function to generate data.  It represents a function of 2 variables
     // and 4 parameters.   The least squares procedure will be used to infer the values of
     // the 4 parameters based on a set of input/output pairs.

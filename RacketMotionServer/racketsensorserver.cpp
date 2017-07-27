@@ -14,8 +14,10 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     _isFirstPacket = true;
     _startTime = 0;
 
-    fitWinLen = 141;
+    fitWinLen = 100;
     isEdisson = true;
+
+    _plotCnt = 0;
 
     connect(_socket, SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
 }
@@ -45,10 +47,15 @@ void RacketSensorServer::readPendingDatagrams()
     QString data(buffer);
 
     _appendToBuffer(&_sensData, &_fitData, data);
+    _plotCnt++;
 
-    if (true) {  // Fit sensor data (do it only if the buffer accumulated enough data):
-        // _fitData = _fitSensData(_sensData, fitWinLen);
-        // emit(sendSensData(_sensData, _fitData));
+    // Fit sensor data (do it only if the buffer accumulated enough data):
+    // _fitData = _fitSensData(_sensData, fitWinLen);
+
+    // Plot the data according to samples to plot:
+    if (_plotCnt >= SAMPLE_PLOT) {
+        emit(sendSensData(_sensData, _fitData));
+        _plotCnt = 0;
     }
 }
 
@@ -59,7 +66,7 @@ void RacketSensorServer::_appendToBuffer(SensBuffer *sensData,
 {
     // Delete packets from beggining of the buffer
     // if the size exceeds its dimensions:
-    if (sensData->size() >= BUFF_SIZE)
+    if (sensData->size() >= MAX_BUFF_SIZE)
         sensData->pop_front();
 
     if (fitData->size() >= fitWinLen)

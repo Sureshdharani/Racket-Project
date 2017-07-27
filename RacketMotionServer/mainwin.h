@@ -19,6 +19,9 @@
 
 #include <qcustomplot/qcustomplot.h>
 #include <racketsensorserver.h>
+#include <fitfunctions.h>
+
+#define FPS_NUMS_MEAN 5
 
 namespace Ui {
 class MainWin;
@@ -51,6 +54,8 @@ private:  // functions
     void _setUpPlot(QCustomPlot *plot, const QString timeFormat = "%m:%s",
                     const QString xLabel = "x", const QString yLabel = "y");
     void _appendToPlot(QCustomPlot *plot, const double key, const double value,
+                       const std::vector<double> fitKey,
+                       const std::vector<double> fitValue,
                        const int scrollRange = 10);
     void _updatePlots(const SensBuffer sensData, const SensBuffer fitData,
                       const int scrollRange = 10);
@@ -60,9 +65,11 @@ private:  // variables
 
     RacketSensorServer* _sensServer;
     QList<QCustomPlot*> _plotsList;
-    double _prevProcessTimePoint;
-    double _prevPlotTimePoint;
-    double _prevTimeStamp;
+
+    // Variables for processing timing:
+    double _FPS;  // fps
+    std::vector<double> _fpsVec;  // fps vector for mean value calculation
+    double _prevPlotTime;  // previous plot time
 };
 
 #endif // MAINWIN_H
