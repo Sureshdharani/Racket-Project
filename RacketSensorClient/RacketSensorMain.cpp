@@ -321,9 +321,10 @@ void SendUDP(vector<Motion_param> someRec, const ClientSettings settings) {
     server.sin_port = htons(settings.port);
     length = sizeof(struct sockaddr_in);
 
+    string msg = "";
     for (unsigned int i = 0; i < settings.bufLen; i++) {
-        bzero(buffer1, settings.udpBufLen);
-        string msg = Send_MsgStr(someRec.at(i));
+        // bzero(buffer1, settings.udpBufLen);
+        msg = Send_MsgStr(someRec.at(i));
         memcpy(buffer1, msg.c_str(), msg.size() + 1);
 
         // std::cout<<"Message"<<msg<<"\n"<<std::endl;

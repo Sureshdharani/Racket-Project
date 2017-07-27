@@ -8,7 +8,7 @@
 #include <string.h>
 
 #define MAX_BUFF_SIZE 1000  // sensor packets buffer size
-#define SAMPLE_PLOT 5  // eacht n-th sample to plot
+#define SAMPLE_PLOT 100  // eacht n-th sample to plot
 
 
 // Represents 3D vector

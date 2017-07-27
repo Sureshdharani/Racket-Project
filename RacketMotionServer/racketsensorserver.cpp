@@ -50,6 +50,7 @@ void RacketSensorServer::readPendingDatagrams()
     _appendToBuffer(&_sensData, data);
 
     // Process fit data buffer by moving fit window over the sensor buffer:
+    /*
     _fitSampleCnt++;
     if (_fitSampleCnt >= fitWinLen) {
         // Copy last fitWinLen points from sensor buffer:
@@ -62,6 +63,7 @@ void RacketSensorServer::readPendingDatagrams()
         // Reset counter:
          _fitSampleCnt = 0;
     }
+    */
 
     // Plot the data according to samples to plot:
     _plotCnt++;
@@ -119,6 +121,7 @@ SensBuffer RacketSensorServer::_fit(const SensBuffer fitData) {
 
         angY.at(i) = fitData.at(i).ang.y;
     }
+    return fitted;
 
     // Fit the data:
     accX = MathFit::fitGauss1b(time, accX);
