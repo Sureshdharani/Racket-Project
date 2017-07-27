@@ -21,23 +21,21 @@ namespace MathFit {
     // We will use this function to generate data.  It represents a function of 2 variables
     // and 4 parameters.   The least squares procedure will be used to infer the values of
     // the 4 parameters based on a set of input/output pairs.
-    double modelNormal (const double &x,
-                        const normPar &p);
+    double gauss1b(const double &x, const normPar &p);
 
     // This function is the "residual" for a least squares problem. It takes an input/output
     // pair and compares it to the output of our model and returns the amount of error.  The idea
     // is to find the set of parameters which makes the residual small on all the data pairs.
-    double residual (const std::pair<double, double> &data,  // (x,y)
-                     const normPar &p);
+    double residual(const std::pair<double, double> &data,  // (x,y)
+                    const normPar &p);
     // const std::pair<input_vector, double>& data,
     // const parameter_vector& params
 
     // This function is the derivative of the residual() function with respect to the parameters.
-    normPar residual_derivative (const std::pair<double, double> &data,
-                                     const normPar &p);
+    normPar residual_derivative(const std::pair<double, double> &data, const normPar &p);
 
     // fits normal destribution
-    std::vector<double> fitNormal(const std::vector<double> dataX,
+    std::vector<double> fitGauss1b(const std::vector<double> dataX,
                                   const std::vector<double> dataY);
 }
 

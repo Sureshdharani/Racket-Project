@@ -2,9 +2,7 @@
 
 
 //-----------------------------------------------------------------------------
-double MathFit::modelNormal (const double &x,
-                             const normPar &p)
-{
+double MathFit::gauss1b(const double &x, const normPar &p) {
     // Normal distribution: b + a * exp(- (x - m)^2 / (2 * s^2))
     // p(0) = b
     // p(1) = a
@@ -30,7 +28,7 @@ double MathFit::residual (const std::pair<double, double> &data,
                           const normPar &p)
 {
     // return modelNormal(data.first, params) - data.second;
-    return modelNormal(data.first, p) - data.second;
+    return gauss1b(data.first, p) - data.second;
 }
 
 //-----------------------------------------------------------------------------
@@ -80,9 +78,8 @@ normPar MathFit::residual_derivative (const std::pair<double, double> &data,
 }
 
 //-----------------------------------------------------------------------------
-std::vector<double> MathFit::fitNormal(const std::vector<double> dataX,
-                                       const std::vector<double> dataY)
-{
+std::vector<double> MathFit::fitGauss1b(const std::vector<double> dataX,
+                                       const std::vector<double> dataY) {
     try {
         // randomly pick a set of parameters to use in this example
         // const parameter_vector params = 10*randm(3,1);
@@ -127,7 +124,7 @@ std::vector<double> MathFit::fitNormal(const std::vector<double> dataX,
         // return fitted data points:
         std::vector<double> out;
         for (unsigned int i = 0; i < dataX.size(); i++)
-            out.push_back(modelNormal(dataX.at(i), p));
+            out.push_back(gauss1b(dataX.at(i), p));
         return out;
 
         // x = 1;

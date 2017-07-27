@@ -99,68 +99,49 @@ void RacketSensorServer::_appendToBuffer(SensBuffer *sensData,
 
 //-----------------------------------------------------------------------------
 SensBuffer RacketSensorServer::_fit(const SensBuffer fitData) {
-    /*
     // Create containers for fit:
+    unsigned int N = fitData.size();
     auto fitted = SensBuffer(N);
 
     std::vector<double> time(N);
-    std::vector<double> accX(N);
-    std::vector<double> accY(N);
-    std::vector<double> accZ(N);
+    std::vector<double> accX(N), accY(N), accZ;
+    std::vector<double> gyroX, gyroY(N), gyroZ(N);
+    std::vector<double> angX, angY(N), angZ;
 
-    std::vector<double> gyroX(N);
-    std::vector<double> gyroY(N);
-    std::vector<double> gyroZ(N);
+    for(unsigned int i = 0; i < time.size(); i++) {
+        time.at(i) = fitData.at(i).t;
 
-    std::vector<double> thetaX(N);
-    std::vector<double> thetaY(N);
-    std::vector<double> thetaZ(N);
+        accX.at(i) = fitData.at(i).acc.x;
+        accY.at(i) = fitData.at(i).acc.y;
 
-    // Cut last N data points from data:
-    unsigned int j = 0;
-    for(unsigned int i = data.size()-1; i > data.size()-1-N; i--) {
-        fitted.at(j) = data.at(i);
+        gyroY.at(i) = fitData.at(i).gyro.y;
+        gyroZ.at(i) = fitData.at(i).gyro.z;
 
-        time.at(j) = data.at(i).t;
-
-        accX.at(j) = data.at(i).acc.x;
-        accY.at(j) = data.at(i).acc.y;
-        accZ.at(j) = data.at(i).acc.z;
-
-        gyroX.at(j) = data.at(i).gyro.x;
-        gyroY.at(j) = data.at(i).gyro.y;
-        gyroZ.at(j) = data.at(i).gyro.z;
-
-        thetaX.at(j) = data.at(i).ang.x;
-        thetaY.at(j) = data.at(i).ang.y;
-        thetaZ.at(j) = data.at(i).ang.z;
-        j++;
+        angY.at(i) = fitData.at(i).ang.y;
     }
 
     // Fit the data:
-    accX = MathFit::fitNormal(time, accX);
-    accY = MathFit::fitNormal(time, accY);
-    accZ = MathFit::fitNormal(time, accZ);
+    accX = MathFit::fitGauss1b(time, accX);
+    accY = MathFit::fitGauss1b(time, accY);
+    // accZ = MathFit::fitGauss1b(time, accZ);
 
-    gyroX = MathFit::fitNormal(time, gyroX);
-    gyroY = MathFit::fitNormal(time, gyroY);
-    gyroZ = MathFit::fitNormal(time, gyroZ);
+    // gyroX = MathFit::fitGauss1b(time, gyroX);
+    gyroY = MathFit::fitGauss1b(time, gyroY);
+    gyroZ = MathFit::fitGauss1b(time, gyroZ);
+
+    angY = MathFit::fitGauss1b(time, angY);
 
     // Pack fitted data to fitted array:
-    for(unsigned int i = 0; i < accX.size(); i++) {
+    for(unsigned int i = 0; i < time.size(); i++) {
         fitted.at(i).acc.x = accX.at(i);
         fitted.at(i).acc.y = accY.at(i);
-        fitted.at(i).acc.z = accZ.at(i);
 
-        fitted.at(i).gyro.x = gyroX.at(i);
         fitted.at(i).gyro.y = gyroY.at(i);
         fitted.at(i).gyro.z = gyroZ.at(i);
+
+        fitted.at(i).ang.y = angY.at(i);
     }
 
-    return fitted;
-    */
-
-    auto fitted = SensBuffer(fitData.size());
     return fitted;
 }
 
