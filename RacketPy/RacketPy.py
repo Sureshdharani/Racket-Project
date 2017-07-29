@@ -92,7 +92,7 @@ def readDataLog(fileName):
 
     # Delete minimum time value such that time begins from zero
     t = t - np.min(t)
-    ang = np.rad2deg(ang)
+    # ang = np.rad2deg(ang)
 
     return t, acc, gyro, ang
 

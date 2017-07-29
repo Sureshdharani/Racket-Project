@@ -165,8 +165,7 @@ void MainWin::setUpGUI() {
 
 
 //-----------------------------------------------------------------------------
-void MainWin::setUpPlots()
-{
+void MainWin::setUpPlots() {
     const QString timeFormat = "%h:%m:%s";  // "%h:%m:%s:%z"
     const QString timeAxisLabel = "t, h:m:s";
 
@@ -181,9 +180,9 @@ void MainWin::setUpPlots()
     _setUpPlot(ui->wid32, timeFormat, timeAxisLabel, "w_z, rad/s");
 
     // magnetic field plots:
-    _setUpPlot(ui->wid13, timeFormat, timeAxisLabel, "O_x, rad");
-    _setUpPlot(ui->wid23, timeFormat, timeAxisLabel, "O_y, rad");
-    _setUpPlot(ui->wid33, timeFormat, timeAxisLabel, "O_z, rad");
+    _setUpPlot(ui->wid13, timeFormat, timeAxisLabel, "O_x, Deg");
+    _setUpPlot(ui->wid23, timeFormat, timeAxisLabel, "O_y, Deg");
+    _setUpPlot(ui->wid33, timeFormat, timeAxisLabel, "O_z, Deg");
 }
 
 //-----------------------------------------------------------------------------
