@@ -62,15 +62,25 @@ void RacketSensorServer::readPendingDatagrams() {
     _fitSampleCnt++;
     if (_fitSampleCnt >= fitWinLen) {
         // Copy last fitWinLen points from sensor buffer:
+        _fitData.clear();
         for (unsigned int i = _sensData.size() - fitWinLen; i < _sensData.size(); i++)
             _fitData.push_back(_sensData.at(i));
 
         // Fit the window:
         _fitData = _fit(_fitData);
 
+        // Predict goodness of movement on the window:
+
         // Reset counter:
-         _fitSampleCnt = 0;
+        _fitSampleCnt = 0;
     }
+
+    /*
+    if (_fitData.size() > fitWinLen)
+        _fitData.pop_front();
+    _fitData.push_back(_sensData.back());
+    _fitData = _fit(_fitData);
+    */
 
     // Plot the data according to samples to plot:
     _plotCnt++;
@@ -139,15 +149,13 @@ SensBuffer RacketSensorServer::_fit(const SensBuffer fitData) {
     }
 
     // Fit the data:
-    accX = MathFit::fitGauss1b(time, accX);
-    accY = MathFit::fitGauss1b(time, accY);
-    // accZ = MathFit::fitGauss1b(time, accZ);
+    accX = MathFit::fitG1b(time, accX);
+    accY = MathFit::fitG1b(time, accY);
 
-    // gyroX = MathFit::fitGauss1b(time, gyroX);
-    gyroY = MathFit::fitGauss1b(time, gyroY);
-    gyroZ = MathFit::fitGauss1b(time, gyroZ);
+    gyroY = MathFit::fitG1b(time, gyroY);
+    gyroZ = MathFit::fitG1b(time, gyroZ);
 
-    angY = MathFit::fitGauss1b(time, angY);
+    angY = MathFit::fitG1b(time, angY);
 
     // Pack fitted data to fitted array:
     for(unsigned int i = 0; i < time.size(); i++) {

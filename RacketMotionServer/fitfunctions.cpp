@@ -2,7 +2,7 @@
 
 
 //-----------------------------------------------------------------------------
-double MathFit::gauss1b(const double &x, const normPar &p) {
+double MathFit::G1b(const double &x, const G1bPar &p) {
     // Normal distribution: b + a * exp(- (x - m)^2 / (2 * s^2))
     // p(0) = b
     // p(1) = a
@@ -17,40 +17,56 @@ double MathFit::gauss1b(const double &x, const normPar &p) {
 //-----------------------------------------------------------------------------
 double MathFit::mean(std::vector<double> vec) {
     double sum = 0;
-    for (unsigned int i = 0; i < vec.size(); i++)
+    for (size_t i = 0; i < vec.size(); i++)
         sum += vec.at(i);
-
     return sum / static_cast<double>(vec.size());
 }
 
 //-----------------------------------------------------------------------------
-double MathFit::residual (const std::pair<double, double> &data,
-                          const normPar &p)
-{
-    // return modelNormal(data.first, params) - data.second;
-    return gauss1b(data.first, p) - data.second;
+double MathFit::median(std::vector<double> vec) {
+  double median = 0;
+
+  std::sort(vec.begin(), vec.end());
+  if (vec.size() % 2 == 0)
+      median = (vec[vec.size() / 2 - 1] + vec[vec.size() / 2]) / 2;
+  else
+      median = vec[vec.size() / 2];
+  return median;
 }
 
 //-----------------------------------------------------------------------------
-normPar MathFit::residual_derivative (const std::pair<double, double> &data,
-                                          const normPar &p)
-{
-    normPar d;
+std::vector<double> MathFit::abs(std::vector<double> vec) {
+    std::vector<double> absVec(vec.size());
+    for (size_t i = 0; i < vec.size(); i++)
+        absVec.at(i) = std::abs(vec.at(i));
+    return absVec;
+}
 
-    /*
-    const double p0 = params(0);
-    const double p1 = params(1);
-    const double p2 = params(2);
+//-----------------------------------------------------------------------------
+std::vector<double> MathFit::sub_offset(std::vector<double> vec,
+                                        const double offset) {
+    std::vector<double> vecNoOffset(vec.size());
+    for (size_t i = 0; i < vec.size(); i++)
+        vecNoOffset.at(i) = vec.at(i) - offset;
+    return vecNoOffset;
+}
 
-    const double i0 = data.first(0);
-    const double i1 = data.first(1);
+//-----------------------------------------------------------------------------
+int MathFit::idxOf(std::vector<double> vec, const double val) {
+    int pos = std::find(vec.begin(), vec.end(), val) - vec.begin();
+    return pos < vec.size() ? pos : 0;
+}
 
-    const double temp = p0*i0 + p1*i1 + p2;
+//-----------------------------------------------------------------------------
+double MathFit::residualG1b(const std::pair<double, double> &data,
+                            const G1bPar &p) {
+    return G1b(data.first, p) - data.second;
+}
 
-    der(0) = i0*2*temp;
-    der(1) = i1*2*temp;
-    der(2) = 2*temp;
-    */
+//-----------------------------------------------------------------------------
+G1bPar MathFit::res_dG1b (const std::pair<double, double> &data,
+                          const G1bPar &p) {
+    G1bPar d;
 
     // Derivative function of normal distribution with respect to parameters:
     // Normal distribution: b + a * exp(- (x - m)^2 / (2 * s^2))
@@ -78,53 +94,48 @@ normPar MathFit::residual_derivative (const std::pair<double, double> &data,
 }
 
 //-----------------------------------------------------------------------------
-std::vector<double> MathFit::fitGauss1b(const std::vector<double> dataX,
-                                       const std::vector<double> dataY) {
+std::vector<double> MathFit::fitG1b(const std::vector<double> dataX,
+                                    const std::vector<double> dataY) {
     try {
         // randomly pick a set of parameters to use in this example
         // const parameter_vector params = 10*randm(3,1);
 
 
         // Crreate data according to model:
-        normPar p;
-        p(0) = *std::min_element(dataY.begin(), dataY.end());
-        p(1) = *std::max_element(dataY.begin(), dataY.end()) - p(0);
-        p(2) = dataX.at(dataX.size()/2);
-        p(3) = 0.1;
+        // p(0) = b
+        // p(1) = a
+        // p(2) = m
+        // p(3) = s
 
+        auto b = median(dataY);  // bias
+        auto absY = abs(dataY);
 
-        // Now let's generate a bunch of input/output pairs according to our model.
-        /*
-        std::vector<std::pair<input_vector, double> > data_samples;
-        input_vector input;
-        for (int i = 0; i < dataX.size(); ++i)
-        {
-            input = 10 * randm(2,1);
-            const double output = modelNormal(input, params);
+        G1bPar p;
+        p(0) = b;
+        p(1) = *std::max_element(absY.begin(), absY.end());
 
-            // save the pair
-            data_samples.push_back(std::make_pair(input, output));
-        }
-        */
+        auto idxAMax = idxOf(absY, p(1));
+        p(1) = std::copysign(p(1), dataY.at(idxAMax));
+        p(2) = dataX.at(idxAMax);
+        p(3) = 1000;
 
-        // create data samples:
-        std::vector<std::pair<double, double> > data_samples;
-        for (int i = 0; i < dataX.size(); ++i)
-            data_samples.push_back(std::make_pair(dataX.at(i), dataY.at(i)));
+        // Create data samples:
+        std::vector<std::pair<double, double> > samples;
+        for (size_t i = 0; i < dataX.size(); ++i)
+            samples.push_back(std::make_pair(dataX.at(i), dataY.at(i)));
 
         // Use the Levenberg-Marquardt method to determine the parameters which
         // minimize the sum of all squared residuals.
-        solve_least_squares_lm(objective_delta_stop_strategy(1e-7),
-                               residual,
-                               residual_derivative,
-                               data_samples,
+        solve_least_squares_lm(objective_delta_stop_strategy(1e-3),
+                               residualG1b,
+                               res_dG1b,
+                               samples,
                                p);
 
-
-        // return fitted data points:
+        // Return fitted data points:
         std::vector<double> out;
         for (unsigned int i = 0; i < dataX.size(); i++)
-            out.push_back(gauss1b(dataX.at(i), p));
+            out.push_back(G1b(dataX.at(i), p));
         return out;
 
         // x = 1;

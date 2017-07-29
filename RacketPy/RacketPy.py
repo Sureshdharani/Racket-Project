@@ -417,7 +417,7 @@ def fitGauss1b(x, y, s_max=1000, dmu=20):
     """
     Fit one dimensional Gaussian with offset
     """
-    # Provide mean free data:
+    # Provide median free data:
     offset = np.median(y)
     y = y - offset
 
