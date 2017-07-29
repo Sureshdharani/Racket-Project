@@ -132,7 +132,7 @@ void MainWin::rcvSensData(const SensBuffer sensData,
     double t0 = time.elapsed();  // in milliseconds
     double dtPlot = t0 - _prevPlotTime;
 
-    _updatePlots(sensData, fitData, ui->pltBufSzLnEd->text().toInt());
+    _updatePlots(sensData, fitData, ui->pltBufSzLnEd->text().toInt(), score);
 
     // Update plot information:
     ui->plotTimeMSLabel->setText(QString::number(dtPlot, 'f', 2));
@@ -191,7 +191,7 @@ void MainWin::_setUpPlot(QCustomPlot *plot, const QString timeFormat,
                          const QString xLabel, const QString yLabel)
 {
     QColor c1 = QColor(40, 110, 255);
-    QColor c2 = QColor(255, 110, 40);
+    QColor c2 = QColor(255, 1, 1);
 
     plot->addGraph(); // c1
     plot->addGraph(); // c2
@@ -213,8 +213,8 @@ void MainWin::_appendToPlot(QCustomPlot *plot,
                             const double value,
                             const std::vector<double> fitKey,
                             const std::vector<double> fitValue,
-                            const int scrollRange)
-{
+                            const int scrollRange,
+                            const int score) {
   // add data to lines:
   plot->graph(0)->addData(key, value);
 
@@ -222,6 +222,10 @@ void MainWin::_appendToPlot(QCustomPlot *plot,
   plot->graph(0)->rescaleValueAxis(true);
 
   // append fitted data:
+  if (score > 0)
+      plot->graph(1)->setPen(QPen(QColor(1, 255, 1)));
+  else
+      plot->graph(1)->setPen(QPen(QColor(255, 1, 1)));
   if (!fitValue.empty()) {
       plot->graph(1)->data()->clear();
       for (unsigned int i = 0; i < fitKey.size(); i++)
@@ -236,7 +240,7 @@ void MainWin::_appendToPlot(QCustomPlot *plot,
 
 //-----------------------------------------------------------------------------
 void MainWin::_updatePlots(const SensBuffer sensData, const SensBuffer fitData,
-                           const int scrollRange)
+                           const int scrollRange, const int score)
 {
     auto t = sensData.back().t;
     auto packet = sensData.back();
@@ -259,15 +263,15 @@ void MainWin::_updatePlots(const SensBuffer sensData, const SensBuffer fitData,
         angY.at(i) = fitData.at(i).ang.y;
     }
 
-    _appendToPlot(ui->wid11, t, packet.acc.x, tFit, accX, scrollRange);
-    _appendToPlot(ui->wid21, t, packet.acc.y, tFit, accY, scrollRange);
-    _appendToPlot(ui->wid31, t, packet.acc.z, tFit, accZ, scrollRange);
+    _appendToPlot(ui->wid11, t, packet.acc.x, tFit, accX, scrollRange, score);
+    _appendToPlot(ui->wid21, t, packet.acc.y, tFit, accY, scrollRange, score);
+    _appendToPlot(ui->wid31, t, packet.acc.z, tFit, accZ, scrollRange, score);
 
-    _appendToPlot(ui->wid12, t, packet.gyro.x, tFit, gyroX, scrollRange);
-    _appendToPlot(ui->wid22, t, packet.gyro.y, tFit, gyroY, scrollRange);
-    _appendToPlot(ui->wid32, t, packet.gyro.z, tFit, gyroZ, scrollRange);
+    _appendToPlot(ui->wid12, t, packet.gyro.x, tFit, gyroX, scrollRange, score);
+    _appendToPlot(ui->wid22, t, packet.gyro.y, tFit, gyroY, scrollRange, score);
+    _appendToPlot(ui->wid32, t, packet.gyro.z, tFit, gyroZ, scrollRange, score);
 
-    _appendToPlot(ui->wid13, t, packet.ang.x, tFit, angX, scrollRange);
-    _appendToPlot(ui->wid23, t, packet.ang.y, tFit, angY, scrollRange);
-    _appendToPlot(ui->wid33, t, packet.ang.z, tFit, angZ, scrollRange);
+    _appendToPlot(ui->wid13, t, packet.ang.x, tFit, angX, scrollRange, score);
+    _appendToPlot(ui->wid23, t, packet.ang.y, tFit, angY, scrollRange, score);
+    _appendToPlot(ui->wid33, t, packet.ang.z, tFit, angZ, scrollRange, score);
 }

@@ -61,9 +61,11 @@ private:  // functions
     void _appendToPlot(QCustomPlot *plot, const double key, const double value,
                        const std::vector<double> fitKey,
                        const std::vector<double> fitValue,
-                       const int scrollRange = 10);
+                       const int scrollRange = 10,
+                       const int score = -1);
     void _updatePlots(const SensBuffer sensData, const SensBuffer fitData,
-                      const int scrollRange = 10);
+                      const int scrollRange = 10,
+                      const int score = -1);
 
 private:  // variables
     Ui::MainWin *ui;
