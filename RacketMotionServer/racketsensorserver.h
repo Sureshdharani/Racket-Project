@@ -22,11 +22,11 @@ struct Vec3D {
     float y = 0;
     float z = 0;
 
-    QString toString(const char prec = 'f', const int numDigit = 6) {
+    QString toString(const char prec = 'f', const int numDigits = 6) {
         QString str = "";
-        str.append("[X: " + QString::number(x, prec, numDigit) + "; ");
-        str.append("Y: " + QString::number(y, prec, numDigit) + "; ");
-        str.append("Z: " + QString::number(z, prec, numDigit) + "]");
+        str.append("[X: " + QString::number(x, prec, numDigits) + "; ");
+        str.append("Y: " + QString::number(y, prec, numDigits) + "; ");
+        str.append("Z: " + QString::number(z, prec, numDigits) + "]");
         return str;
     }
 };
@@ -38,12 +38,12 @@ struct Vec4D {
     float y = 0;
     float z = 0;
 
-    QString toString(const char prec = 'f', const int numDigit = 6) {
+    QString toString(const char prec = 'f', const int numDigits = 6) {
         QString str = "";
-        str.append("[W: " + QString::number(w, prec, numDigit) + "; ");
-        str.append("X: " + QString::number(x, prec, numDigit) + "; ");
-        str.append("Y: " + QString::number(y, prec, numDigit) + "; ");
-        str.append("Z: " + QString::number(z, prec, numDigit) + "]");
+        str.append("[W: " + QString::number(w, prec, numDigits) + "; ");
+        str.append("X: " + QString::number(x, prec, numDigits) + "; ");
+        str.append("Y: " + QString::number(y, prec, numDigits) + "; ");
+        str.append("Z: " + QString::number(z, prec, numDigits) + "]");
         return str;
     }
 };
@@ -99,7 +99,10 @@ public:  // functions
     // Processes packet from edisson:
     // Packet fromat:
     // "s@TimeStamp@accX@accY@accZ@gyroX@gyroY@gyroZ@w@x@y@z@;"
-    SensPacket processInPacketEdisson(const QString data, const bool isFirstPacket = false);
+    SensPacket processInPacketEdisson(const QString data,
+                                      bool *isBad,
+                                      size_t *badCnt,
+                                      const bool isFirstPacket = false);
 
 public:  // variables
     bool isEdisson;
@@ -116,7 +119,9 @@ signals:
     void sendSensData(const SensBuffer sensData,
                       const SensBuffer fitData,
                       const int score,
-                      const unsigned int _scoreCnt);
+                      const unsigned int scoreCnt,
+                      const double transferTime,
+                      const double predictionTime);
 
 private:  // private functions
     // Fits sensor data:
@@ -130,6 +135,11 @@ private:  // private functions
     int _predict(const G1bPar &accYPar, const G1bPar &gyroZPar,
                  const G1bPar &angYPar, const G2bPar &accXPar,
                  const G2bPar &gyroYPar);
+
+    // Corrects bad packet:
+    void _correctBadPacket(SensPacket *badPacket,
+                           const SensPacket prevPacket,
+                           const size_t badCnt);
 
     // Dot product:
     double _dot(std::vector<double> v1, std::vector<double> v2);
@@ -148,6 +158,10 @@ private:  // private variables
 
     unsigned int _scoreCnt;
     int _score;
+
+    // Transfer and prediction time:
+    double _transferTime;
+    double _predictionTime;
 };
 
 #endif // RACKETSENSORCLIENT_H

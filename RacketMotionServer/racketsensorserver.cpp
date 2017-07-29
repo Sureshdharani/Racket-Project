@@ -24,6 +24,9 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     _scoreCnt = 0;
     _score = -1;
 
+    _transferTime = 0;
+    _predictionTime = 0;
+
     // LDA Coeffitients:
     /*
     [[ -7.76442441e-01   1.34795168e-02  -2.42369048e-02   3.66681975e+00
@@ -68,7 +71,7 @@ void RacketSensorServer::readPendingDatagrams() {
 
     // When data comes in
     QByteArray buffer;
-    buffer.resize(_socket->pendingDatagramSize());
+    buffer.resize(_socket->pendingDatagramSize()+100);
 
     QHostAddress sender;
     quint16 senderPort;
@@ -103,7 +106,9 @@ void RacketSensorServer::readPendingDatagrams() {
     // Plot the data according to samples to plot:
     _plotCnt++;
     if (_plotCnt >= SAMPLE_PLOT) {
-        emit(sendSensData(_sensData, _fitData, _score, _scoreCnt));
+        emit(sendSensData(_sensData, _fitData,
+                          _score, _scoreCnt,
+                          _transferTime, _predictionTime));
         _plotCnt = 0;
     }
 
@@ -132,15 +137,62 @@ void RacketSensorServer::_appendToBuffer(SensBuffer *sensData,
         auto sensPacketPrev = sensData->empty() ? SensPacket() : sensData->back();
         p = processInPacketMobile(data, sensPacketPrev);
     } else {  // process packet from edison
-        if (sensData->empty()) {
+        if (sensData->empty())
             _isFirstPacket = true;
-        } else {
+        else
             _isFirstPacket = false;
-        }
-        p = processInPacketEdisson(data, _isFirstPacket);
+        bool isBad = false;
+        size_t badCnt = 0;
+        p = processInPacketEdisson(data, &isBad, &badCnt, _isFirstPacket);
+        if (isBad)
+            _correctBadPacket(&p, sensData->back(), badCnt);
     }
-
     sensData->push_back(p);
+}
+
+//-----------------------------------------------------------------------------
+void RacketSensorServer::_correctBadPacket(SensPacket *badPacket,
+                                           const SensPacket prevPacket,
+                                           const size_t badCnt) {
+    switch(badCnt) {
+        case 0:
+            badPacket->t = prevPacket.t;
+            break;
+        case 1:
+            badPacket->acc.x = prevPacket.acc.x;
+            break;
+        case 2:
+            badPacket->acc.y = prevPacket.acc.y;
+            break;
+        case 3:
+            badPacket->acc.z = prevPacket.acc.z;
+            break;
+        case 4:
+            badPacket->gyro.x = prevPacket.gyro.x;
+            break;
+        case 5:
+            badPacket->gyro.y = prevPacket.gyro.y;
+            break;
+        case 6:
+            badPacket->gyro.z = prevPacket.gyro.z;
+            break;
+        case 7:
+            badPacket->ang.x = prevPacket.ang.x;
+            break;
+        case 8:
+            badPacket->ang.y = prevPacket.ang.y;
+            break;
+        case 9:
+            badPacket->ang.z = prevPacket.ang.z;
+            break;
+        case 10:
+            badPacket->ang.x = prevPacket.ang.x;
+            badPacket->ang.z = prevPacket.ang.z;
+            badPacket->ang.z = prevPacket.ang.z;
+            break;
+        default:
+            break;
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -251,58 +303,86 @@ SensPacket RacketSensorServer::processInPacketMobile(const QString packet,
 
 //-----------------------------------------------------------------------------
 SensPacket RacketSensorServer::processInPacketEdisson(const QString data,
+                                                      bool *isBad,
+                                                      size_t *badCnt,
                                                       const bool isFirstPacket)
 {
     // Packet fromat:
     // "s@TimeStamp@accX@accY@accZ@gyroX@gyroY@gyroZ@angX@angY@angZ@;"
-
+    *isBad = false;
     SensPacket p;
-
     std::string packet = data.toStdString();
+    try {
 
-    int posBeg = packet.find_first_of("s@");
-    int posEnd = packet.find_last_of("@;");
-    packet = packet.substr(posBeg + 2, posEnd - 2);
+        const std::string del = "@";
 
-    std::vector<std::string> p_vec;
+        int posBeg = packet.find_first_of("s@");
+        int posEnd = packet.find_last_of(";");
+        packet = packet.substr(posBeg + 2, posEnd);
 
-    posBeg = 0;
-    std::string del = "@";
-    for (size_t i = 0; i < packet.size(); ++i) {
-        if (packet.substr(i,1).compare(del) == 0) {
-            posEnd = packet.find_first_of("@", posBeg);
-            p_vec.push_back(packet.substr(posBeg,
-                                          std::abs(posEnd - posBeg)));
-            posBeg = i + 1;
+        if (packet.substr(packet.size()-1,1).compare(del) != 0)
+            packet.append(del);
+
+        std::vector<std::string> p_vec;
+        posBeg = 0;
+        for (size_t i = 0; i < packet.size(); ++i) {
+            if (packet.substr(i,1).compare(del) == 0) {
+                posEnd = packet.find_first_of(del, posBeg);
+                p_vec.push_back(packet.substr(posBeg,
+                                              std::abs(posEnd - posBeg)));
+                posBeg = i + 1;
+            }
         }
+
+        (*badCnt) = 0;
+        if (isFirstPacket)  // set start time to zero
+            _startTime = std::stod(p_vec.at(0));
+
+        p.t = std::stod(p_vec.at(0));
+        p.t = p.t - _startTime;
+
+        (*badCnt)++;
+        p.acc.x = std::stof(p_vec.at(1));
+        (*badCnt)++;
+        p.acc.y = std::stof(p_vec.at(2));
+        (*badCnt)++;
+        p.acc.z = std::stof(p_vec.at(3));
+
+        (*badCnt)++;
+        p.gyro.x = std::stof(p_vec.at(4));
+        (*badCnt)++;
+        p.gyro.y = std::stof(p_vec.at(5));
+        (*badCnt)++;
+        p.gyro.z = std::stof(p_vec.at(6));
+
+        if (p_vec.size() == 10) {  // use euler angles
+            (*badCnt)++;
+            p.ang.x = std::stof(p_vec.at(7));
+            (*badCnt)++;
+            p.ang.y = std::stof(p_vec.at(8));
+            (*badCnt)++;
+            p.ang.z = std::stof(p_vec.at(9));
+        } else if (p_vec.size() == 11) {  // use quaternions
+            (*badCnt)++;
+            p.quat.w = std::stof(p_vec.at(7));
+            (*badCnt)++;
+            p.quat.x = std::stof(p_vec.at(8));
+            (*badCnt)++;
+            p.quat.y = std::stof(p_vec.at(9));
+            (*badCnt)++;
+            p.quat.z = std::stof(p_vec.at(10));
+
+            _quat2euler(p.quat.w, p.quat.x, p.quat.y, p.quat.z,
+                        &p.ang.x, &p.ang.y, &p.ang.z);
+        }
+
+    } catch (const std::exception &ex) {
+        *isBad = true;
+        return p;
+    } catch (...) {
+        *isBad = true;
+        return p;
     }
-
-    if (isFirstPacket) {  // set start time to zero
-        _startTime = std::stod(p_vec.at(0));
-    }
-
-    p.t = std::stod(p_vec.at(0));
-    p.t = p.t - _startTime;
-
-    p.acc.x = std::stof(p_vec.at(1));
-    p.acc.y = std::stof(p_vec.at(2));
-    p.acc.z = std::stof(p_vec.at(3));
-
-    p.gyro.x = std::stof(p_vec.at(4));
-    p.gyro.y = std::stof(p_vec.at(5));
-    p.gyro.z = std::stof(p_vec.at(6));
-
-    if (p_vec.size() == 10) {  // use euler angles
-        p.ang.x = std::stof(p_vec.at(7));
-        p.ang.y = std::stof(p_vec.at(8));
-        p.ang.z = std::stof(p_vec.at(9));
-    } else if (p_vec.size() == 11) {  // use quaternions
-        p.quat.w = std::stof(p_vec.at(7));
-        p.quat.x = std::stof(p_vec.at(8));
-        p.quat.y = std::stof(p_vec.at(9));
-        p.quat.z = std::stof(p_vec.at(10));
-    }
-
     return p;
 }
 

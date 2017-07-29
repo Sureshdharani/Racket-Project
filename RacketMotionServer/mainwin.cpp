@@ -65,11 +65,15 @@ void MainWin::connectSignals()
             SIGNAL(sendSensData(const SensBuffer,
                                 const SensBuffer,
                                 const int,
-                                const unsigned int)),
+                                const unsigned int,
+                                const double,
+                                const double)),
             this, SLOT(rcvSensData(const SensBuffer,
                                    const SensBuffer,
                                    const int,
-                                   const unsigned int)));
+                                   const unsigned int,
+                                   const double,
+                                   const double)));
 
     // Line edit objects
     connect(ui->localPortLnEd, SIGNAL(editingFinished()), this,
@@ -118,7 +122,9 @@ void MainWin::fitWinLenChnged() {
 void MainWin::rcvSensData(const SensBuffer sensData,
                           const SensBuffer fitData,
                           const int score,
-                          const unsigned int scoreCnt) {
+                          const unsigned int scoreCnt,
+                          const double transferTime,
+                          const double predictionTime) {
     ui->scoreLabel->setText(QString::number(score, 'f', 1));
     ui->scoreCntLabel->setText(QString::number(scoreCnt, 'f', 1));
 
@@ -132,8 +138,8 @@ void MainWin::rcvSensData(const SensBuffer sensData,
     ui->plotTimeMSLabel->setText(QString::number(dtPlot, 'f', 2));
     ui->totDataPtLabel->setText(QString::number(ui->wid11->graph(0)->data()->size()));
 
-    ui->transferTimeMSLabel->setText(QString::number(-1, 'f', 2));
-    ui->procTimeMSLabel->setText(QString::number(-1, 'f', 2));
+    ui->transferTimeMSLabel->setText(QString::number(transferTime, 'f', 2));
+    ui->procTimeMSLabel->setText(QString::number(predictionTime, 'f', 2));
 
     _FPS = 1000.0 / dtPlot;
     _fpsVec.push_back(_FPS);

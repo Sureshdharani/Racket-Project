@@ -36,7 +36,9 @@ public slots:
     void rcvSensData(const SensBuffer sensData,
                      const SensBuffer fitData,
                      const int score,
-                     const unsigned int scoreCnt);
+                     const unsigned int scoreCnt,
+                     const double transferTime,
+                     const double predictionTime);
     void portChanged();
     void fitWinLenChnged();
     void phoneSelected(int);
