@@ -914,13 +914,22 @@ def main(stateprint=False):
     # *
     # **********************************************************************
     # Proove classification on test data set
+    b = clf.intercept_
+    w = clf.coef_
+    myScore = 0
+    print('np.shape(w) =', np.shape(w))
+    print('np.shape(b) =', np.shape(b))
     for i in range(np.shape(X_ts)[0]):
         x = np.reshape(X_ts[i], (1, np.shape(X_ts)[1]))
+        score = (np.dot(x, w.T) + b)[0][0]
+        if score > 0:
+            score = 1.0
+        else:
+            score = -1.0
         print('pred label:\t', clf.predict(x)[0],
+              '; my pred label:\t', score,
               '; true label:\t', y_ts[i])
     print("Prediction score: ", clf.score(X_ts, y_ts))
-    # print(np.shape(clf.coef_), clf.coef_)
-    # print(clf.intercept_)
 
     # **********************************************************************
     # *

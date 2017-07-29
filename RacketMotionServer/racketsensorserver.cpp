@@ -22,7 +22,7 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     _isProcess = true;
     _saveCnt = 0;
     _scoreCnt = 0;
-    _score = 0;
+    _score = -1;
 
     // LDA Coeffitients:
     /*
@@ -89,11 +89,12 @@ void RacketSensorServer::readPendingDatagrams() {
             _fitData.push_back(_sensData.at(i));
 
         // Fit and predict the window:
-        _fitData = _fitPredict(_fitData, &_score);
+        int score = -1;
+        _fitData = _fitPredict(_fitData, &score);
 
         // Increase score counter if prediction was correct:
-        if (_score > 0)
-            _scoreCnt++;
+        _score = score;
+        if (score > 0) _scoreCnt++;
 
         // Reset counter:
         _fitSampleCnt = 0;
@@ -179,6 +180,10 @@ SensBuffer RacketSensorServer::_fitPredict(const SensBuffer fitData,
 
     // Predict:
     *score = _predict(accYPar, gyroZPar, angYPar, accXPar, gyroYPar);
+
+    // Detection treshold:
+    double accXMin = *std::min_element(accX.begin(), accX.end());
+    if (accXMin > -5) *score = -1;
 
     // Pack fitted data to fitted array:
     double t = 0;
@@ -415,7 +420,9 @@ int RacketSensorServer::_predict(const G1bPar &accYPar, const G1bPar &gyroZPar,
     fVec.at(24) = angYPar(3);  // s1
     fVec.at(25) = angYPar(0);  // b
 
-    int score = static_cast<int>(_dot(fVec, _coeffs.w) + _coeffs.b);
+    double res = _dot(fVec, _coeffs.w) + _coeffs.b;
+    int score = -1;
+    if (res > 0) score = 1;
     return score;
 }
 
