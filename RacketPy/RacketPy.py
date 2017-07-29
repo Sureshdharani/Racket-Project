@@ -473,9 +473,11 @@ def createResidual(accXOpt, accYOpt, accZOpt, gyroXOpt, gyroYOpt, gyroZOpt,
     >>> r = createResidual(accXO, accYO, accZO, \
                            gyroXO, gyroYO, gyroZO, \
                            angXO, angYO, angZO)
-    >>> ret = [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 21.0, 22.0, \
-               23.0, 24.0, 61.0, 62.0, 63.0, 64.0, 51.0, 52.0, 53.0, \
-               54.0, 55.0, 56.0, 57.0, 81.0, 82.0, 83.0, 84.0]
+    >>> ret = [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, \
+               21.0, 22.0, 23.0, 24.0, \
+               61.0, 62.0, 63.0, 64.0, \
+               51.0, 52.0, 53.0, 54.0, 55.0, 56.0, 57.0, \
+               81.0, 82.0, 83.0, 84.0]
     >>> sum(np.array(ret) - np.array(r))
     0.0
     """
@@ -840,7 +842,7 @@ def main(stateprint=False):
     """
     Main function.
 
-    >>> main()
+    # >>> main()
     """
     print('****************************************************************')
     # **********************************************************************
@@ -952,6 +954,9 @@ def main(stateprint=False):
     plotRecords(fig_ts, recs_ts, bad=True)
 
     plt.show()
+    print('******************** Trained Coefficients **********************')
+    print("Coeffivients:\n", clf.coef_)
+    print("Bias:\n", clf.intercept_)
     print('****************************************************************')
 
 

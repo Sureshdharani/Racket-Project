@@ -62,8 +62,14 @@ void MainWin::connectSignals()
             SLOT(showState(const QString)));
 
     connect(_sensServer,
-            SIGNAL(sendSensData(const SensBuffer, const SensBuffer)),
-            this, SLOT(rcvSensData(const SensBuffer, const SensBuffer)));
+            SIGNAL(sendSensData(const SensBuffer,
+                                const SensBuffer,
+                                const int,
+                                const unsigned int)),
+            this, SLOT(rcvSensData(const SensBuffer,
+                                   const SensBuffer,
+                                   const int,
+                                   const unsigned int)));
 
     // Line edit objects
     connect(ui->localPortLnEd, SIGNAL(editingFinished()), this,
@@ -110,7 +116,12 @@ void MainWin::fitWinLenChnged() {
 
 //-----------------------------------------------------------------------------
 void MainWin::rcvSensData(const SensBuffer sensData,
-                          const SensBuffer fitData) {
+                          const SensBuffer fitData,
+                          const int score,
+                          const unsigned int scoreCnt) {
+    ui->scoreLabel->setText(QString::number(score, 'f', 1));
+    ui->scoreCntLabel->setText(QString::number(scoreCnt, 'f', 1));
+
     static QTime time(QTime::currentTime());
     double t0 = time.elapsed();  // in milliseconds
     double dtPlot = t0 - _prevPlotTime;

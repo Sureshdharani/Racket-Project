@@ -29,8 +29,7 @@ double MathFit::G2b(const double &x, const G2bPar &p) {
                                  / (2 * std::pow(p(3), 2)));
     const double exp2 = std::exp((-1.0 * std::pow((x - p(5)), 2))
                                  / (2 * std::pow(p(6), 2)));
-    const double ret = p(0) + p(1) * exp1 + p(4) * exp2;
-    return ret;
+    return p(0) + p(1) * exp1 + p(4) * exp2;
 }
 
 //-----------------------------------------------------------------------------
@@ -173,10 +172,10 @@ std::vector<std::pair<double, double> > MathFit::createDataSamples(
 }
 
 //-----------------------------------------------------------------------------
-std::vector<double> MathFit::fitG1b(const std::vector<double> dataX,
-                                    const std::vector<double> dataY,
-                                    const unsigned int maxIter) {
-    std::vector<double> out;
+G1bPar MathFit::fitG1b(const std::vector<double> dataX,
+                       const std::vector<double> dataY,
+                       const unsigned int maxIter) {
+    G1bPar p;
     try {
         // randomly pick a set of parameters to use in this example
         // const parameter_vector params = 10*randm(3,1);
@@ -189,7 +188,6 @@ std::vector<double> MathFit::fitG1b(const std::vector<double> dataX,
 
         auto absY = abs(dataY);
 
-        G1bPar p;
         p(0) = median(dataY);
         p(1) = *std::max_element(absY.begin(), absY.end());
 
@@ -209,10 +207,6 @@ std::vector<double> MathFit::fitG1b(const std::vector<double> dataX,
                                samples,
                                p);
 
-        // Return fitted data points:
-        for (size_t i = 0; i < dataX.size(); i++)
-            out.push_back(G1b(dataX.at(i), p));
-
         // x = 1;
         // cout << "Use Levenberg-Marquardt, approximate derivatives" << endl;
         // If we didn't create the residual_derivative function then we could
@@ -227,9 +221,6 @@ std::vector<double> MathFit::fitG1b(const std::vector<double> dataX,
         // cout << "inferred parameters: "<< trans(x) << endl;
         // cout << "solution error:      "<< length(x - params) << endl;
         // cout << endl;
-
-
-
 
         // x = 1;
         // cout << "Use Levenberg-Marquardt/quasi-newton hybrid" << endl;
@@ -250,14 +241,14 @@ std::vector<double> MathFit::fitG1b(const std::vector<double> dataX,
     catch (std::exception& e) {
         // cout << e.what() << endl;
     }
-    return out;
+    return p;
 }
 
 //-----------------------------------------------------------------------------
-std::vector<double> MathFit::fitG2b(const std::vector<double> dataX,
-                                    const std::vector<double> dataY,
-                                    const unsigned int maxIter) {
-    std::vector<double> out;
+G2bPar MathFit::fitG2b(const std::vector<double> dataX,
+                       const std::vector<double> dataY,
+                       const unsigned int maxIter) {
+    G2bPar p;
     try {
         // randomly pick a set of parameters to use in this example
         // const parameter_vector params = 10*randm(3,1);
@@ -277,7 +268,6 @@ std::vector<double> MathFit::fitG2b(const std::vector<double> dataX,
         auto idxAMin = idxOf(dataY,
                              *std::min_element(dataY.begin(), dataY.end()));
 
-        G2bPar p;
         p(0) = median(dataY);
         // Find out if max or min comes earlier
         // and depending on it assign parameters of G2b:
@@ -308,10 +298,6 @@ std::vector<double> MathFit::fitG2b(const std::vector<double> dataX,
                                samples,
                                p);
 
-        // Return fitted data points:
-        for (size_t i = 0; i < dataX.size(); i++)
-            out.push_back(G2b(dataX.at(i), p));
-
         // x = 1;
         // cout << "Use Levenberg-Marquardt, approximate derivatives" << endl;
         // If we didn't create the residual_derivative function then we could
@@ -326,9 +312,6 @@ std::vector<double> MathFit::fitG2b(const std::vector<double> dataX,
         // cout << "inferred parameters: "<< trans(x) << endl;
         // cout << "solution error:      "<< length(x - params) << endl;
         // cout << endl;
-
-
-
 
         // x = 1;
         // cout << "Use Levenberg-Marquardt/quasi-newton hybrid" << endl;
@@ -349,5 +332,5 @@ std::vector<double> MathFit::fitG2b(const std::vector<double> dataX,
     catch (std::exception& e) {
         // cout << e.what() << endl;
     }
-    return out;
+    return p;
 }

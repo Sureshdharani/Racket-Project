@@ -21,6 +21,28 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
     _fitSampleCnt = 0;
     _isProcess = true;
     _saveCnt = 0;
+    _scoreCnt = 0;
+    _score = 0;
+
+    // LDA Coeffitients:
+    /*
+    [[ -7.76442441e-01   1.34795168e-02  -2.42369048e-02   3.66681975e+00
+        1.77651653e-02  -9.93980942e-03  -6.49765193e+00   2.71417690e-01
+        9.63193371e-03   4.81830890e-02  -3.08687469e+00   3.77931074e-03
+        -1.67710300e-02   8.34588651e-02   3.81116072e-02  -6.37249451e-03
+        -1.06619860e-02  -1.71543138e-02  -2.08362715e-03   6.69304917e-03
+        -4.05025034e-02  -1.61096582e-02   3.66797253e-03  -2.04267472e-02
+        -3.92647869e-02  -1.85461968e-02]]
+    [-29.03111269]
+    */
+    _coeffs.w = {-7.76442441e-01, 1.34795168e-02, -2.42369048e-02, 3.66681975e+00,
+                 1.77651653e-02, -9.93980942e-03, -6.49765193e+00, 2.71417690e-01,
+                 9.63193371e-03, 4.81830890e-02, -3.08687469e+00, 3.77931074e-03,
+                 -1.67710300e-02, 8.34588651e-02, 3.81116072e-02, -6.37249451e-03,
+                 -1.06619860e-02, -1.71543138e-02, -2.08362715e-03, 6.69304917e-03,
+                 -4.05025034e-02, -1.61096582e-02, 3.66797253e-03, -2.04267472e-02,
+                 -3.92647869e-02, -1.85461968e-02};
+    _coeffs.b = -29.03111269;
 
     connect(_socket, SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
 }
@@ -66,26 +88,21 @@ void RacketSensorServer::readPendingDatagrams() {
         for (unsigned int i = _sensData.size() - fitWinLen; i < _sensData.size(); i++)
             _fitData.push_back(_sensData.at(i));
 
-        // Fit the window:
-        _fitData = _fit(_fitData);
+        // Fit and predict the window:
+        _fitData = _fitPredict(_fitData, &_score);
 
-        // Predict goodness of movement on the window:
+        // Increase score counter if prediction was correct:
+        if (_score > 0)
+            _scoreCnt++;
 
         // Reset counter:
         _fitSampleCnt = 0;
     }
 
-    /*
-    if (_fitData.size() > fitWinLen)
-        _fitData.pop_front();
-    _fitData.push_back(_sensData.back());
-    _fitData = _fit(_fitData);
-    */
-
     // Plot the data according to samples to plot:
     _plotCnt++;
     if (_plotCnt >= SAMPLE_PLOT) {
-        emit(sendSensData(_sensData, _fitData));
+        emit(sendSensData(_sensData, _fitData, _score, _scoreCnt));
         _plotCnt = 0;
     }
 
@@ -126,7 +143,8 @@ void RacketSensorServer::_appendToBuffer(SensBuffer *sensData,
 }
 
 //-----------------------------------------------------------------------------
-SensBuffer RacketSensorServer::_fit(const SensBuffer fitData) {
+SensBuffer RacketSensorServer::_fitPredict(const SensBuffer fitData,
+                                           int *score) {
     // Create containers for fit:
     unsigned int N = fitData.size();
     auto fitted = SensBuffer(N);
@@ -149,24 +167,31 @@ SensBuffer RacketSensorServer::_fit(const SensBuffer fitData) {
     }
 
     // Fit the data:
-    accX = MathFit::fitG2b(time, accX, MAX_ITER);  // G2b
-    accY = MathFit::fitG1b(time, accY, MAX_ITER);  // G1b
+    G1bPar accYPar, gyroZPar, angYPar;
+    G2bPar accXPar, gyroYPar;
+    accXPar = MathFit::fitG2b(time, accX, MAX_ITER);  // G2b
+    accYPar = MathFit::fitG1b(time, accY, MAX_ITER);  // G1b
 
-    gyroY = MathFit::fitG2b(time, gyroY, MAX_ITER);  // G2b
-    gyroZ = MathFit::fitG1b(time, gyroZ, MAX_ITER);  // G1b
+    gyroYPar = MathFit::fitG2b(time, gyroY, MAX_ITER);  // G2b
+    gyroZPar = MathFit::fitG1b(time, gyroZ, MAX_ITER);  // G1b
 
-    angY = MathFit::fitG1b(time, angY, MAX_ITER);  // G1b
+    angYPar = MathFit::fitG1b(time, angY, MAX_ITER);  // G1b
+
+    // Predict:
+    *score = _predict(accYPar, gyroZPar, angYPar, accXPar, gyroYPar);
 
     // Pack fitted data to fitted array:
+    double t = 0;
     for(unsigned int i = 0; i < time.size(); i++) {
-        fitted.at(i).t = time.at(i);
-        fitted.at(i).acc.x = accX.at(i);
-        fitted.at(i).acc.y = accY.at(i);
+        t = time.at(i);
+        fitted.at(i).t = t;
+        fitted.at(i).acc.x = MathFit::G2b(t, accXPar);
+        fitted.at(i).acc.y = MathFit::G1b(t, accYPar);
 
-        fitted.at(i).gyro.y = gyroY.at(i);
-        fitted.at(i).gyro.z = gyroZ.at(i);
+        fitted.at(i).gyro.y = MathFit::G2b(t, gyroYPar);
+        fitted.at(i).gyro.z = MathFit::G1b(t, gyroZPar);
 
-        fitted.at(i).ang.y = angY.at(i);
+        fitted.at(i).ang.y = MathFit::G1b(t, angYPar);
     }
 
     return fitted;
@@ -305,8 +330,7 @@ void RacketSensorServer::_saveBuffer(const SensBuffer data) {
 //-----------------------------------------------------------------------------
 void RacketSensorServer::_quat2euler(const float q_w, const float q_x,
                                      const float q_y, const float q_z,
-                                     float *t_x, float *t_y, float *t_z)
-{
+                                     float *t_x, float *t_y, float *t_z) {
     double ysqr = q_y * q_y;
 
     // roll (x-axis rotation)
@@ -324,4 +348,84 @@ void RacketSensorServer::_quat2euler(const float q_w, const float q_x,
     double t3 = +2.0 * (q_w * q_z + q_x * q_y);
     double t4 = +1.0 - 2.0 * (ysqr + q_z * q_z);
     *t_z = static_cast<float>(std::atan2(t3, t4));
+}
+
+//-----------------------------------------------------------------------------
+int RacketSensorServer::_predict(const G1bPar &accYPar, const G1bPar &gyroZPar,
+                                 const G1bPar &angYPar, const G2bPar &accXPar,
+                                 const G2bPar &gyroYPar) {
+    // G2bPar:
+    // p(0) = b
+    // p(1) = a1
+    // p(2) = m1
+    // p(3) = s1
+    // p(4) = a2
+    // p(5) = m2
+    // p(6) = s2
+
+    // G1bPar:
+    // p(0) = b
+    // p(1) = a
+    // p(2) = m
+    // p(3) = s
+
+    // Create features vector:
+    // [
+    //  A1 m1 s1 A2 m2 s2 b  // accXPar
+    //  A1 m1 s1 b           // accYPar
+    //  A1 m1 s1 b           // gyroZPar
+    //  A1 m1 s1 A2 m2 s2 b  // gyroYPar
+    //  A1 m1 s1 b           // angYPar
+    // ]
+    std::vector<double> fVec(NUM_FEATURES);
+
+    // accXPar:
+    fVec.at(0) = accXPar(1);  // a1
+    fVec.at(1) = accXPar(2);  // m1
+    fVec.at(2) = accXPar(3);  // s1
+    fVec.at(3) = accXPar(4);  // a2
+    fVec.at(4) = accXPar(5);  // m2
+    fVec.at(5) = accXPar(6);  // s2
+    fVec.at(6) = accXPar(0);  // b
+
+    // accYPar:
+    fVec.at(7) = accYPar(1);   // a1
+    fVec.at(8) = accYPar(2);   // m1
+    fVec.at(9) = accYPar(3);   // s1
+    fVec.at(10) = accYPar(0);  // b
+
+    // gyroZPar:
+    fVec.at(11) = gyroZPar(1);  // a1
+    fVec.at(12) = gyroZPar(2);  // m1
+    fVec.at(13) = gyroZPar(3);  // s1
+    fVec.at(14) = gyroZPar(0);  // b
+
+    // gyroYPar:
+    fVec.at(15) = gyroYPar(1);  // a1
+    fVec.at(16) = gyroYPar(2);  // m1
+    fVec.at(17) = gyroYPar(3);  // s1
+    fVec.at(18) = gyroYPar(4);  // a2
+    fVec.at(19) = gyroYPar(5);  // m2
+    fVec.at(20) = gyroYPar(6);  // s2
+    fVec.at(21) = gyroYPar(0);  // b
+
+    // angYPar:
+    fVec.at(22) = angYPar(1);  // a1
+    fVec.at(23) = angYPar(2);  // m1
+    fVec.at(24) = angYPar(3);  // s1
+    fVec.at(25) = angYPar(0);  // b
+
+    int score = static_cast<int>(_dot(fVec, _coeffs.w) + _coeffs.b);
+    return score;
+}
+
+//-----------------------------------------------------------------------------
+double RacketSensorServer::_dot(std::vector<double> v1,
+                                std::vector<double> v2) {
+    double dot = 0;
+    if (v1.size() != v2.size()) return dot;
+
+    for (size_t i = 0; i < v1.size(); i++)
+        dot += v1.at(i) * v2.at(i);
+    return dot;
 }

@@ -14,7 +14,7 @@
 #define MAX_BUFF_SIZE 1000  // sensor packets buffer size
 #define SAMPLE_PLOT 10  // each n-th sample to plot
 #define MAX_ITER 20
-
+#define NUM_FEATURES 26  // number of feauters
 
 // Represents 3D vector
 struct Vec3D {
@@ -71,6 +71,12 @@ struct SensPacket {
     }
 };
 
+// LDA coefficients:
+struct LDACoeffs {
+    std::vector<double> w;  // vector with coeffitients
+    double b;  // bias
+};
+
 // Sensor data FIFO:
 typedef std::deque<SensPacket> SensBuffer;     // raw sensor data buffer
 
@@ -107,16 +113,26 @@ public slots:
 
 signals:
     void sendState(const QString errorDescr);
-    void sendSensData(const SensBuffer sensData, const SensBuffer fitData);
+    void sendSensData(const SensBuffer sensData,
+                      const SensBuffer fitData,
+                      const int score,
+                      const unsigned int _scoreCnt);
 
 private:  // private functions
     // Fits sensor data:
-    SensBuffer _fit(const SensBuffer fitData);
+    SensBuffer _fitPredict(const SensBuffer fitData, int *score);
     static void _quat2euler(const float q_w, const float q_x,
                             const float q_y, const float q_z,
                             float *t_x, float *t_y, float *t_z);
     void _appendToBuffer(SensBuffer *sensData, const QString data);
     void _saveBuffer(const SensBuffer data);
+
+    int _predict(const G1bPar &accYPar, const G1bPar &gyroZPar,
+                 const G1bPar &angYPar, const G2bPar &accXPar,
+                 const G2bPar &gyroYPar);
+
+    // Dot product:
+    double _dot(std::vector<double> v1, std::vector<double> v2);
 
 private:  // private variables
     bool _isProcess;
@@ -128,6 +144,10 @@ private:  // private variables
     SensBuffer _fitData;  // fitted sensor data
     unsigned int _plotCnt;  // plotting counter
     unsigned int _fitSampleCnt;  // fit sample counter
+    LDACoeffs _coeffs;  // LDA Classifier coeffitients
+
+    unsigned int _scoreCnt;
+    int _score;
 };
 
 #endif // RACKETSENSORCLIENT_H

@@ -58,14 +58,14 @@ namespace MathFit {
     G2bPar res_dG2b(const std::pair<double, double> &data, const G2bPar &p);
 
     // Fit G1b:
-    std::vector<double> fitG1b(const std::vector<double> dataX,
-                               const std::vector<double> dataY,
-                               const unsigned int maxIter = 100);
+    G1bPar fitG1b(const std::vector<double> dataX,
+                  const std::vector<double> dataY,
+                  const unsigned int maxIter = 100);
 
     // Fit G2b:
-    std::vector<double> fitG2b(const std::vector<double> dataX,
-                               const std::vector<double> dataY,
-                               const unsigned int maxIter = 100);
+    G2bPar fitG2b(const std::vector<double> dataX,
+                  const std::vector<double> dataY,
+                  const unsigned int maxIter = 100);
 }
 
 #endif // FITFUNCTIONS_H

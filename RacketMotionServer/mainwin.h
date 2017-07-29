@@ -33,7 +33,10 @@ class MainWin : public QMainWindow
 
 public slots:
     void showState(const QString);
-    void rcvSensData(const SensBuffer sensData, const SensBuffer fitData);
+    void rcvSensData(const SensBuffer sensData,
+                     const SensBuffer fitData,
+                     const int score,
+                     const unsigned int scoreCnt);
     void portChanged();
     void fitWinLenChnged();
     void phoneSelected(int);
