@@ -32,6 +32,11 @@ namespace MathFit {
     // Returns index of val in vec else 0:
     int idxOf(std::vector<double> vec, const double val);
 
+    // Create data samples:
+    std::vector<std::pair<double, double> > createDataSamples(
+            const std::vector<double> dataX,
+            const std::vector<double> dataY);
+
     // Gaussian 1 with bias:
     double G1b(const double &x, const G1bPar &p);
 
@@ -54,11 +59,13 @@ namespace MathFit {
 
     // Fit G1b:
     std::vector<double> fitG1b(const std::vector<double> dataX,
-                               const std::vector<double> dataY);
+                               const std::vector<double> dataY,
+                               const unsigned int maxIter = 100);
 
     // Fit G2b:
     std::vector<double> fitG2b(const std::vector<double> dataX,
-                               const std::vector<double> dataY);
+                               const std::vector<double> dataY,
+                               const unsigned int maxIter = 100);
 }
 
 #endif // FITFUNCTIONS_H

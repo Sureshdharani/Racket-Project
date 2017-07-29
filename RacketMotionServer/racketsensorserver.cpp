@@ -149,13 +149,13 @@ SensBuffer RacketSensorServer::_fit(const SensBuffer fitData) {
     }
 
     // Fit the data:
-    accX = MathFit::fitG2b(time, accX);  // G2b
-    accY = MathFit::fitG1b(time, accY);  // G1b
+    accX = MathFit::fitG2b(time, accX, MAX_ITER);  // G2b
+    accY = MathFit::fitG1b(time, accY, MAX_ITER);  // G1b
 
-    gyroY = MathFit::fitG2b(time, gyroY);  // G2b
-    gyroZ = MathFit::fitG1b(time, gyroZ);  // G1b
+    gyroY = MathFit::fitG2b(time, gyroY, MAX_ITER);  // G2b
+    gyroZ = MathFit::fitG1b(time, gyroZ, MAX_ITER);  // G1b
 
-    angY = MathFit::fitG1b(time, angY);  // G1b
+    angY = MathFit::fitG1b(time, angY, MAX_ITER);  // G1b
 
     // Pack fitted data to fitted array:
     for(unsigned int i = 0; i < time.size(); i++) {

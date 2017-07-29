@@ -13,6 +13,7 @@
 // #define LOG
 #define MAX_BUFF_SIZE 1000  // sensor packets buffer size
 #define SAMPLE_PLOT 10  // each n-th sample to plot
+#define MAX_ITER 20
 
 
 // Represents 3D vector

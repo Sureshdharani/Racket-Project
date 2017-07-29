@@ -163,9 +163,19 @@ G2bPar MathFit::res_dG2b (const std::pair<double, double> &data,
     return d;
 }
 
+std::vector<std::pair<double, double> > MathFit::createDataSamples(
+        const std::vector<double> dataX,
+        const std::vector<double> dataY) {
+    std::vector<std::pair<double, double> > samples;
+    for (size_t i = 0; i < dataX.size(); ++i)
+        samples.push_back(std::make_pair(dataX.at(i), dataY.at(i)));
+    return samples;
+}
+
 //-----------------------------------------------------------------------------
 std::vector<double> MathFit::fitG1b(const std::vector<double> dataX,
-                                    const std::vector<double> dataY) {
+                                    const std::vector<double> dataY,
+                                    const unsigned int maxIter) {
     std::vector<double> out;
     try {
         // randomly pick a set of parameters to use in this example
@@ -177,11 +187,10 @@ std::vector<double> MathFit::fitG1b(const std::vector<double> dataX,
         // p(2) = m
         // p(3) = s
 
-        auto b = median(dataY);  // bias
         auto absY = abs(dataY);
 
         G1bPar p;
-        p(0) = b;
+        p(0) = median(dataY);
         p(1) = *std::max_element(absY.begin(), absY.end());
 
         auto idxAMax = idxOf(absY, p(1));
@@ -190,13 +199,11 @@ std::vector<double> MathFit::fitG1b(const std::vector<double> dataX,
         p(3) = 1000;
 
         // Create data samples:
-        std::vector<std::pair<double, double> > samples;
-        for (size_t i = 0; i < dataX.size(); ++i)
-            samples.push_back(std::make_pair(dataX.at(i), dataY.at(i)));
+        auto samples = createDataSamples(dataX, dataY);
 
         // Use the Levenberg-Marquardt method to determine the parameters which
         // minimize the sum of all squared residuals.
-        solve_least_squares_lm(objective_delta_stop_strategy(1e-3),
+        solve_least_squares_lm(objective_delta_stop_strategy(1e-3, maxIter),
                                residualG1b,
                                res_dG1b,
                                samples,
@@ -248,7 +255,8 @@ std::vector<double> MathFit::fitG1b(const std::vector<double> dataX,
 
 //-----------------------------------------------------------------------------
 std::vector<double> MathFit::fitG2b(const std::vector<double> dataX,
-                                    const std::vector<double> dataY) {
+                                    const std::vector<double> dataY,
+                                    const unsigned int maxIter) {
     std::vector<double> out;
     try {
         // randomly pick a set of parameters to use in this example
@@ -264,30 +272,37 @@ std::vector<double> MathFit::fitG2b(const std::vector<double> dataX,
         // p(5) = m2
         // p(6) = s2
 
-        auto b = median(dataY);  // bias
-        auto absY = abs(dataY);
-        auto idxAMax = idxOf(absY,
-                             *std::max_element(absY.begin(), absY.end()));
+        auto idxAMax = idxOf(dataY,
+                             *std::max_element(dataY.begin(), dataY.end()));
+        auto idxAMin = idxOf(dataY,
+                             *std::min_element(dataY.begin(), dataY.end()));
 
         G2bPar p;
-        p(0) = b;
+        p(0) = median(dataY);
+        // Find out if max or min comes earlier
+        // and depending on it assign parameters of G2b:
+        if (idxAMax < idxAMin) {
+            p(1) = dataY.at(idxAMax);
+            p(2) = dataX.at(idxAMax);
 
-        p(1) = std::copysign(p(1), dataY.at(idxAMax));
-        p(2) = dataX.at(idxAMax);
+            p(4) = dataY.at(idxAMin);
+            p(5) = dataX.at(idxAMin);
+        } else {
+            p(1) = dataY.at(idxAMin);
+            p(2) = dataX.at(idxAMin);
+
+            p(4) = dataY.at(idxAMax);
+            p(5) = dataX.at(idxAMax);
+        }
         p(3) = 1000;
-
-        p(4) = 1000;
-        p(5) = 1000;
         p(6) = 1000;
 
         // Create data samples:
-        std::vector<std::pair<double, double> > samples;
-        for (size_t i = 0; i < dataX.size(); ++i)
-            samples.push_back(std::make_pair(dataX.at(i), dataY.at(i)));
+        auto samples = createDataSamples(dataX, dataY);
 
         // Use the Levenberg-Marquardt method to determine the parameters which
         // minimize the sum of all squared residuals.
-        solve_least_squares_lm(objective_delta_stop_strategy(1e-3),
+        solve_least_squares_lm(objective_delta_stop_strategy(1e-3, maxIter),
                                residualG2b,
                                res_dG2b,
                                samples,
