@@ -13,7 +13,7 @@
 // #define LOG
 #define MAX_BUFF_SIZE 1000  // sensor packets buffer size
 #define SAMPLE_PLOT 5  // each n-th sample to plot
-#define MAX_ITER 30
+#define MAX_ITER 20
 #define NUM_FEATURES 26  // number of feauters
 #define ACC_X_MIN_TRESHHOLD -1
 

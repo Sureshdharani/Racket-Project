@@ -201,7 +201,8 @@ G1bPar MathFit::fitG1b(const std::vector<double> dataX,
 
         // Use the Levenberg-Marquardt method to determine the parameters which
         // minimize the sum of all squared residuals.
-        solve_least_squares_lm(objective_delta_stop_strategy(1e-3, maxIter),
+        solve_least_squares_lm(objective_delta_stop_strategy(FIT_PRECISION,
+                                                             maxIter),
                                residualG1b,
                                res_dG1b,
                                samples,
@@ -292,7 +293,8 @@ G2bPar MathFit::fitG2b(const std::vector<double> dataX,
 
         // Use the Levenberg-Marquardt method to determine the parameters which
         // minimize the sum of all squared residuals.
-        solve_least_squares_lm(objective_delta_stop_strategy(1e-3, maxIter),
+        solve_least_squares_lm(objective_delta_stop_strategy(FIT_PRECISION,
+                                                             maxIter),
                                residualG2b,
                                res_dG2b,
                                samples,

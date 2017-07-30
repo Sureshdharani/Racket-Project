@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <dlib-19.4/dlib/optimization.h>
 
+#define FIT_PRECISION 1e-3
+
 using namespace dlib;
 
 /*

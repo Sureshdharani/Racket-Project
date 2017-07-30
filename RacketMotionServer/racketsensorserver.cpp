@@ -212,8 +212,9 @@ SensBuffer RacketSensorServer::_fitPredict(const SensBuffer fitData,
     std::vector<double> gyroX, gyroY(N), gyroZ(N);
     std::vector<double> angX, angY(N), angZ;
 
+    double t0 = fitData.at(0).t;
     for(unsigned int i = 0; i < time.size(); i++) {
-        time.at(i) = fitData.at(i).t;
+        time.at(i) = fitData.at(i).t - t0;
 
         accX.at(i) = fitData.at(i).acc.x;
         accY.at(i) = fitData.at(i).acc.y;
@@ -238,6 +239,24 @@ SensBuffer RacketSensorServer::_fitPredict(const SensBuffer fitData,
     // Predict:
     *score = _predict(accYPar, gyroZPar, angYPar, accXPar, gyroYPar);
 
+    // Time shift for means:
+    // accXPar:
+    accXPar(2) += t0;  // m1
+    accXPar(5) += t0;  // m2
+
+    // accYPar:
+    accYPar(2) += t0;   // m1
+
+    // gyroZPar:
+    gyroZPar(2) += t0;  // m1
+
+    // gyroYPar:
+    gyroYPar(2) += t0;  // m1
+    gyroYPar(5) += t0;  // m2
+
+    // angYPar:
+    angYPar(2) += t0;  // m1
+
     // Detection treshold:
     double accXMin = *std::min_element(accX.begin(), accX.end());
     if (accXMin > this->accXMin) *score = -1;
@@ -245,7 +264,7 @@ SensBuffer RacketSensorServer::_fitPredict(const SensBuffer fitData,
     // Pack fitted data to fitted array:
     double t = 0;
     for(unsigned int i = 0; i < time.size(); i++) {
-        t = time.at(i);
+        t = time.at(i) + t0;
         fitted.at(i).t = t;
         fitted.at(i).acc.x = MathFit::G2b(t, accXPar);
         fitted.at(i).acc.y = MathFit::G1b(t, accYPar);

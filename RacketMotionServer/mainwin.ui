@@ -51,7 +51,6 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
-           <zorder>ControlBox</zorder>
           </widget>
          </item>
          <item row="0" column="0">
@@ -372,7 +371,7 @@
             <string extracomment="Local Port"/>
            </property>
            <property name="text">
-            <string>-3</string>
+            <string>-5</string>
            </property>
           </widget>
          </item>
@@ -552,14 +551,6 @@
         </spacer>
        </item>
       </layout>
-      <zorder>layoutWidget</zorder>
-      <zorder>layoutWidget</zorder>
-      <zorder>layoutWidget</zorder>
-      <zorder>layoutWidget</zorder>
-      <zorder>layoutWidget</zorder>
-      <zorder>layoutWidget</zorder>
-      <zorder>layoutWidget</zorder>
-      <zorder>layoutWidget_2</zorder>
       <zorder>verticalSpacer</zorder>
      </widget>
     </item>
