@@ -4,8 +4,7 @@
 //-----------------------------------------------------------------------------
 MainWin::MainWin(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWin)
-{
+    ui(new Ui::MainWin) {
     ui->setupUi(this);
     setUpGUI();
 
@@ -28,9 +27,12 @@ MainWin::MainWin(QWidget *parent) :
 
     setUpPlots();
 
-    // Start and run racket sensor client
+    // Start and run racket sensor client:
     _sensServer = new RacketSensorServer(this);
     _sensServer->fitWinLen = ui->fitWinLenLnEd->text().toInt();
+    _sensServer->accXMin = ui->accXMinThresholdLnEd->text().toFloat();
+    _sensServer->fitWinStepInPercentOfLen =
+            ui->fitWinLenStepLnEd->text().toFloat() / 100;
 
     if (ui->isPhoneChBox->isChecked())
         _sensServer->isEdisson = false;
@@ -49,15 +51,13 @@ MainWin::MainWin(QWidget *parent) :
 }
 
 //-----------------------------------------------------------------------------
-MainWin::~MainWin()
-{
+MainWin::~MainWin() {
     delete _sensServer;
     delete ui;
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::connectSignals()
-{
+void MainWin::connectSignals() {
     connect(_sensServer, SIGNAL(sendState(const QString)), this,
             SLOT(showState(const QString)));
 
@@ -80,7 +80,11 @@ void MainWin::connectSignals()
             SLOT(portChanged()));
 
     connect(ui->fitWinLenLnEd, SIGNAL(editingFinished()), this,
-            SLOT(fitWinLenChnged()));
+            SLOT(fitSettingsChanged()));
+    connect(ui->accXMinThresholdLnEd, SIGNAL(editingFinished()), this,
+            SLOT(fitSettingsChanged()));
+    connect(ui->fitWinLenStepLnEd, SIGNAL(editingFinished()), this,
+            SLOT(fitSettingsChanged()));
 
     connect(ui->isPhoneChBox, SIGNAL(stateChanged(int)), this,
             SLOT(phoneSelected(int)));
@@ -90,8 +94,7 @@ void MainWin::connectSignals()
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::portChanged()
-{
+void MainWin::portChanged() {
     emit(_sensServer->setListenIPPort(ui->localPortLnEd->text()));
 }
 
@@ -114,8 +117,11 @@ void MainWin::phoneSelected(int newState) {
 }
 
 //-----------------------------------------------------------------------------
-void MainWin::fitWinLenChnged() {
+void MainWin::fitSettingsChanged() {
     _sensServer->fitWinLen = ui->fitWinLenLnEd->text().toInt();
+    _sensServer->accXMin = ui->accXMinThresholdLnEd->text().toFloat();
+    _sensServer->fitWinStepInPercentOfLen =
+            ui->fitWinLenStepLnEd->text().toFloat() / 100;
 }
 
 //-----------------------------------------------------------------------------
@@ -161,8 +167,9 @@ void MainWin::setUpGUI() {
     ui->localPortLnEd->setValidator(new QIntValidator(1, 65536, this));
     ui->pltBufSzLnEd->setValidator(new QIntValidator(5, 1000000000, this));
     ui->fitWinLenLnEd->setValidator(new QIntValidator(10, 1000, this));
+    ui->accXMinThresholdLnEd->setValidator(new QIntValidator(-20, 1, this));
+    ui->fitWinLenStepLnEd->setValidator(new QIntValidator(1, 100, this));
 }
-
 
 //-----------------------------------------------------------------------------
 void MainWin::setUpPlots() {
@@ -187,8 +194,7 @@ void MainWin::setUpPlots() {
 
 //-----------------------------------------------------------------------------
 void MainWin::_setUpPlot(QCustomPlot *plot, const QString timeFormat,
-                         const QString xLabel, const QString yLabel)
-{
+                         const QString xLabel, const QString yLabel) {
     QColor c1 = QColor(40, 110, 255);
     QColor c2 = QColor(255, 1, 1);
 
@@ -239,8 +245,7 @@ void MainWin::_appendToPlot(QCustomPlot *plot,
 
 //-----------------------------------------------------------------------------
 void MainWin::_updatePlots(const SensBuffer sensData, const SensBuffer fitData,
-                           const int scrollRange, const int score)
-{
+                           const int scrollRange, const int score) {
     auto t = sensData.back().t;
     auto packet = sensData.back();
 

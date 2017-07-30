@@ -16,6 +16,8 @@ RacketSensorServer::RacketSensorServer(QObject *parent,
 
     fitWinLen = 100;
     isEdisson = true;
+    accXMin = ACC_X_MIN_TRESHHOLD;
+    fitWinStepInPercentOfLen = 1;
 
     _plotCnt = 0;
     _fitSampleCnt = 0;
@@ -85,10 +87,13 @@ void RacketSensorServer::readPendingDatagrams() {
 
     // Process fit data buffer by moving fit window over the sensor buffer:
     _fitSampleCnt++;
-    if (_fitSampleCnt >= fitWinLen) {
+    size_t treshold = static_cast<size_t>(fitWinStepInPercentOfLen *
+                                          static_cast<float>(fitWinLen));
+    if (_fitSampleCnt >= treshold) {
         // Copy last fitWinLen points from sensor buffer:
-        _fitData.clear();
-        for (unsigned int i = _sensData.size() - fitWinLen; i < _sensData.size(); i++)
+       _fitData.clear();
+        size_t n = _sensData.size() < fitWinLen ? _fitSampleCnt : fitWinLen;
+        for (unsigned int i = _sensData.size() - n; i < _sensData.size(); i++)
             _fitData.push_back(_sensData.at(i));
 
         // Fit and predict the window:
@@ -235,7 +240,7 @@ SensBuffer RacketSensorServer::_fitPredict(const SensBuffer fitData,
 
     // Detection treshold:
     double accXMin = *std::min_element(accX.begin(), accX.end());
-    if (accXMin > -5) *score = -1;
+    if (accXMin > this->accXMin) *score = -1;
 
     // Pack fitted data to fitted array:
     double t = 0;

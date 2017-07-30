@@ -40,7 +40,7 @@ public slots:
                      const double transferTime,
                      const double predictionTime);
     void portChanged();
-    void fitWinLenChnged();
+    void fitSettingsChanged();
     void phoneSelected(int);
     void edissonSelected(int);
 
