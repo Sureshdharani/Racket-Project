@@ -90,15 +90,37 @@ void RacketSensorServer::readPendingDatagrams() {
     size_t treshold = static_cast<size_t>(fitWinStepInPercentOfLen *
                                           static_cast<float>(fitWinLen));
     if (_fitSampleCnt >= treshold) {
-        // Copy last fitWinLen points from sensor buffer:
-       _fitData.clear();
+        // Find minimum of accX and its index in las n points.
+        // Build the fit window around this min value:
         size_t n = _sensData.size() < fitWinLen ? _fitSampleCnt : fitWinLen;
-        for (unsigned int i = _sensData.size() - n; i < _sensData.size(); i++)
-            _fitData.push_back(_sensData.at(i));
+        auto accXMinPIt = std::min_element(_sensData.end() - n, _sensData.end(),
+                                           [](const SensPacket p1,
+                                              const SensPacket p2) {
+                                                 return p1.acc.x < p2.acc.x;
+                                               });
+        auto accXMinP = *accXMinPIt;  // packet with accXMin
+        double accXMin = accXMinP.acc.x;
+        size_t accXMinIdx = std::distance(_sensData.begin(), accXMinPIt);
+
+        // Copy n points around accXMinIdx:
+       _fitData.clear();
+
+       // The distance from accXMinIdx to right _sensData side is smaller than
+       // half of window fit lengt - just take last n points
+       if ((accXMinIdx + (n / 2)) >= _sensData.size() ||
+           (accXMin > this-> accXMin)) {
+           for (unsigned int i = _sensData.size() - n; i < _sensData.size(); i++)
+               _fitData.push_back(_sensData.at(i));
+       } else {  // build window around accXMin
+           for (unsigned int i = accXMinIdx - (n / 2);
+                i < accXMinIdx + (n / 2); i++) {
+                _fitData.push_back(_sensData.at(i));
+           }
+       }
 
         // Fit and predict the window:
         int score = -1;
-        _fitData = _fitPredict(_fitData, &score);
+        _fitData = _fitPredict(_fitData, accXMin,  &score);
 
         // Increase score counter if prediction was correct:
         _score = score;
@@ -202,6 +224,7 @@ void RacketSensorServer::_correctBadPacket(SensPacket *badPacket,
 
 //-----------------------------------------------------------------------------
 SensBuffer RacketSensorServer::_fitPredict(const SensBuffer fitData,
+                                           const double accXMin,
                                            int *score) {
     // Create containers for fit:
     unsigned int N = fitData.size();
@@ -258,7 +281,6 @@ SensBuffer RacketSensorServer::_fitPredict(const SensBuffer fitData,
     angYPar(2) += t0;  // m1
 
     // Detection treshold:
-    double accXMin = *std::min_element(accX.begin(), accX.end());
     if (accXMin > this->accXMin) *score = -1;
 
     // Pack fitted data to fitted array:

@@ -6,9 +6,9 @@
 #include <ostream>
 #include <string>
 #include <deque>
-#include <fitfunctions.h>
+#include <iterator>
 #include <stdio.h>
-#include <string.h>
+#include <fitfunctions.h>
 
 // #define LOG
 #define MAX_BUFF_SIZE 1000  // sensor packets buffer size
@@ -130,7 +130,9 @@ signals:
 
 private:  // private functions
     // Fits sensor data:
-    SensBuffer _fitPredict(const SensBuffer fitData, int *score);
+    SensBuffer _fitPredict(const SensBuffer fitData,
+                           const double accXMin,
+                           int *score);
     static void _quat2euler(const float q_w, const float q_x,
                             const float q_y, const float q_z,
                             float *t_x, float *t_y, float *t_z);
