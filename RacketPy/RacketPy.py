@@ -546,7 +546,7 @@ def createFMtrx(recs):
 
     for r in recs:
         t = r['t'][:, 0]
-        print("t:\n", t)
+
         # Fit record:
         accXOpt = fitGauss2b(t, r['acc'][:, 0], s_max=1000, dmu=20)
         accYOpt = fitGauss1b(t, r['acc'][:, 1], s_max=1000, dmu=20)
